@@ -1,26 +1,14 @@
 package com.st0nefish.discord.bot.commands
 
 import com.st0nefish.discord.bot.data.Config
-import dev.kord.core.Kord
+import com.st0nefish.discord.bot.data.Constants
 import me.jakejmattson.discordkt.commands.commands
 
-fun dataCommands(config: Config) = commands("Config") {
-    slash("get-config", "get current configuration") {
+@Suppress("unused")
+fun configCommands(config: Config) = commands(Constants.ADMIN_CATEGORY) {
+    slash("admin-get-config", "admin command to get bot configuration") {
         execute {
-            if (author.id.value == config.owner.value) {
-                respond(getConfigMsg(config, discord.kord))
-            } else {
-                val owner = discord.kord.getUser(config.owner)
-                respond("only my overlord, the almighty ${owner?.tag} may access this endpoint")
-            }
+            respond("```${config.asString(discord.kord)}```")
         }
     }
-}
-
-suspend fun getConfigMsg(config: Config, kord: Kord): String {
-    return """
-       ```
-       ${config.asString(kord)}
-       ```
-    """.trimIndent()
 }

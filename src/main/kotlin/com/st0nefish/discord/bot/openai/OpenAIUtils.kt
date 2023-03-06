@@ -1,4 +1,4 @@
-package com.st0nefish.discord.bot.services
+package com.st0nefish.discord.bot.openai
 
 import com.aallam.openai.api.BetaOpenAI
 import com.aallam.openai.api.chat.ChatCompletion

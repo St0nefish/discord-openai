@@ -10,15 +10,15 @@
 |----------|-----------|-------------------------|
 | ask-gpt  | Prompt    | ask chat GPT a question |
 
-## Config
-| Commands   | Arguments | Description               |
-|------------|-----------|---------------------------|
-| get-config |           | get current configuration |
-
 ## DallE
 | Commands  | Arguments          | Description                   |
 |-----------|--------------------|-------------------------------|
 | ask-dalle | image-size, Prompt | generate an image with DALL·E |
+
+## admin
+| Commands         | Arguments | Description                            |
+|------------------|-----------|----------------------------------------|
+| admin-get-config |           | admin command to get bot configuration |
 
 ## utility
 | Commands | Arguments | Description           |

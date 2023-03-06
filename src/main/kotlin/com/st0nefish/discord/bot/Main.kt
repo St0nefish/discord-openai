@@ -3,22 +3,17 @@ package com.st0nefish.discord.bot
 import com.st0nefish.discord.bot.data.Config
 import com.st0nefish.discord.bot.data.EnvironmentVars
 import dev.kord.common.annotation.KordPreview
+import dev.kord.common.entity.PresenceStatus
 import dev.kord.gateway.Intents
 import kotlinx.coroutines.flow.toList
 import me.jakejmattson.discordkt.dsl.bot
 import me.jakejmattson.discordkt.locale.Language
 import java.awt.Color
 
-
 @KordPreview
 fun main() {
-    // discord bot token
-    val token: String = System.getenv(EnvironmentVars.BOT_TOKEN)
-    if (token.isBlank()) {
-        throw BotConfigurationException("bot token is required to start the discord-gpt bot")
-    }
-
-    bot(token) {
+    // create bot using token retrieved from environment variables
+    bot(System.getenv(EnvironmentVars.BOT_TOKEN)) {
         // load configuration
         val config = data("config/config.json") { Config() }
 
@@ -39,10 +34,13 @@ fun main() {
             intents = Intents.nonPrivileged
         }
 
+        // set presence to online and streaming OpenAI - not ideal but no hook to custom presence
         presence {
-            playing("Discord GPT")
+            status = PresenceStatus.Online
+            streaming("with OpenAI", "https://openai.com/")
         }
 
+        // log some config details on startup
         onStart {
             println(config.asString(kord))
             println("-----------------------------")
@@ -51,6 +49,7 @@ fun main() {
             println("-----------------------------")
         }
 
+        // set locale
         localeOf(Language.EN) {
             helpName = "help"
             helpCategory = "utility"

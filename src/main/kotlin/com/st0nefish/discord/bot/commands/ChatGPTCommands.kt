@@ -2,11 +2,12 @@ package com.st0nefish.discord.bot.commands
 
 import com.st0nefish.discord.bot.data.Config
 import com.st0nefish.discord.bot.data.Constants
-import com.st0nefish.discord.bot.services.OpenAIUtils
+import com.st0nefish.discord.bot.openai.OpenAIUtils
 import me.jakejmattson.discordkt.arguments.AnyArg
 import me.jakejmattson.discordkt.commands.commands
 import org.slf4j.LoggerFactory
 
+@Suppress("unused")
 fun chatGPTCommands(config: Config) = commands("ChatGPT") {
     val log = LoggerFactory.getLogger(this.javaClass.name)
     val openAI = OpenAIUtils(config)
@@ -21,7 +22,7 @@ fun chatGPTCommands(config: Config) = commands("ChatGPT") {
             println("${author.tag} asked: $prompt")
             log.info("${author.tag} asked: $prompt")
             // ask GPT
-            var msg = "${author.username} asked: $prompt"
+            var msg = "${author.mention} asked: $prompt"
             val response = openAI.basicCompletion(author.id.value, prompt)
             // check if response is too long to post in a single message
             if ((msg.length + response.length) <= Constants.MAX_MESSAGE_LENGTH) {
