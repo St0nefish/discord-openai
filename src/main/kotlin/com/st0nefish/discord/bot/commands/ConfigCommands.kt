@@ -10,7 +10,8 @@ fun dataCommands(config: Config) = commands("Config") {
             if (author.id.value == config.owner.value) {
                 respond(getConfigMsg(config, discord.kord))
             } else {
-                respond("access denied")
+                val owner = discord.kord.getUser(config.owner)
+                respond("only my overlord, the almighty ${owner?.tag} may access this endpoint")
             }
         }
     }
@@ -18,7 +19,7 @@ fun dataCommands(config: Config) = commands("Config") {
 
 suspend fun getConfigMsg(config: Config, kord: Kord): String {
     return """
-        ```
+       ```
        ${config.asString(kord)}
        ```
     """.trimIndent()
