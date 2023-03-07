@@ -1,4 +1,4 @@
-package com.st0nefish.discord.bot.data
+package com.st0nefish.discord.openai.data
 
 class Constants {
     companion object {

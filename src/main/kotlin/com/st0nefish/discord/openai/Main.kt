@@ -1,7 +1,8 @@
-package com.st0nefish.discord.bot
+package com.st0nefish.discord.openai
 
-import com.st0nefish.discord.bot.data.Config
-import com.st0nefish.discord.bot.data.EnvironmentVars
+import com.st0nefish.discord.openai.data.Config
+import com.st0nefish.discord.openai.data.EnvironmentVars
+import com.st0nefish.discord.openai.utils.UsageTracker
 import dev.kord.common.annotation.KordPreview
 import dev.kord.common.entity.PresenceStatus
 import dev.kord.gateway.Intents
@@ -16,6 +17,10 @@ fun main() {
     bot(System.getenv(EnvironmentVars.BOT_TOKEN)) {
         // load configuration
         val config = data("config/config.json") { Config() }
+
+        // instantiate UsageTracker and set config
+        val usageTracker = UsageTracker.getInstance()
+        usageTracker.setConfig(config)
 
         // set prefix from config
         prefix { config.prefix }

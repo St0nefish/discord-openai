@@ -1,15 +1,15 @@
-package com.st0nefish.discord.bot.commands
+package com.st0nefish.discord.openai.commands
 
-import com.st0nefish.discord.bot.data.Config
-import com.st0nefish.discord.bot.data.Constants
-import com.st0nefish.discord.bot.openai.OpenAIUtils
+import com.st0nefish.discord.openai.data.Config
+import com.st0nefish.discord.openai.data.Constants
+import com.st0nefish.discord.openai.utils.OpenAIUtils
 import me.jakejmattson.discordkt.arguments.AnyArg
 import me.jakejmattson.discordkt.commands.commands
 import org.slf4j.LoggerFactory
 
 @Suppress("unused")
 fun chatGPTCommands(config: Config) = commands("ChatGPT") {
-    val log = LoggerFactory.getLogger(this.javaClass.name)
+    val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.commands.ChatGPTCommands")
     val openAI = OpenAIUtils(config)
 
     slash("ask-gpt", "ask chat GPT a question") {
@@ -19,11 +19,25 @@ fun chatGPTCommands(config: Config) = commands("ChatGPT") {
             // immediately echo question privately
             respond("asking gpt: $prompt...")
             // log question
-            println("${author.tag} asked: $prompt")
             log.info("${author.tag} asked: $prompt")
             // ask GPT
             var msg = "${author.mention} asked: $prompt"
-            val response = openAI.basicCompletion(author.id.value, prompt)
+            val response: String
+            try {
+                response = openAI.basicCompletion(author, prompt)
+            } catch (e: Exception) {
+                log.error(
+                    "exception getting GPT completion%nAuthor: %s:%nPrompt:%s%nException:%n%s".format(
+                        author.tag, prompt, e.stackTraceToString()
+                    )
+                )
+                channel.createMessage(
+                    "%s - failed to get completion from GPT%nPrompt: %s%nException:%n```%s```".format(
+                        author.mention, prompt, e.stackTraceToString()
+                    )
+                )
+                return@execute
+            }
             // check if response is too long to post in a single message
             if ((msg.length + response.length) <= Constants.MAX_MESSAGE_LENGTH) {
                 // echoed question + response fits in one message
@@ -47,10 +61,13 @@ fun chatGPTCommands(config: Config) = commands("ChatGPT") {
                 }
                 // post final message if required
                 if (msg.isNotBlank()) channel.createMessage(msg)
-                // log response
-                println("${author.tag} asked \"$prompt\" and got response:$delim$response")
-                log.info("${author.tag} asked \"$prompt\" and got response:$delim$response")
             }
+            // log response
+            log.info(
+                "GPT response:%nAuthor: %s%nPrompt: %s%nResponse: %s".format(
+                    author.tag, prompt, response.trim()
+                )
+            )
         }
     }
 }

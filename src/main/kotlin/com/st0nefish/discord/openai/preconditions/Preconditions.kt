@@ -1,7 +1,7 @@
-package com.st0nefish.discord.bot.preconditions
+package com.st0nefish.discord.openai.preconditions
 
-import com.st0nefish.discord.bot.data.Config
-import com.st0nefish.discord.bot.data.Constants
+import com.st0nefish.discord.openai.data.Config
+import com.st0nefish.discord.openai.data.Constants
 import me.jakejmattson.discordkt.dsl.precondition
 
 // block all commands from bots

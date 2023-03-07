@@ -1,4 +1,4 @@
-package com.st0nefish.discord.bot
+package com.st0nefish.discord.openai
 
 class BotConfigurationException(message: String) : Exception(message) {
 

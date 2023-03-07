@@ -1,4 +1,4 @@
-package com.st0nefish.discord.bot.data
+package com.st0nefish.discord.openai.data
 
 import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
@@ -14,6 +14,7 @@ class Config(
     val prefix: String = System.getenv(EnvironmentVars.CMD_PREFIX) ?: "/",
     val allowGuilds: List<ULong> = getAllowList(System.getenv(EnvironmentVars.ALLOW_GUILDS) ?: ""),
     val allowChannels: List<ULong> = getAllowList(System.getenv(EnvironmentVars.ALLOW_CHANNELS) ?: ""),
+    val maxDailyUserCost: Double = (System.getenv(EnvironmentVars.MAX_DAILY_USER_COST) ?: "0").toDouble(),
 ) : Data() {
     companion object {
         fun getAllowList(guildListStr: String): List<ULong> {
@@ -36,6 +37,8 @@ class Config(
         response += formatStr.format("Owner Tag:", "${owner?.tag}")
         response += "%n".format()
         response += formatStr.format("Command Prefix:", prefix)
+        response += "%n".format()
+        response += formatStr.format("User Daily Cost:", maxDailyUserCost)
         response += "%n".format()
         response += formatStr.format("Discord Token:", botToken)
         response += "%n".format()
