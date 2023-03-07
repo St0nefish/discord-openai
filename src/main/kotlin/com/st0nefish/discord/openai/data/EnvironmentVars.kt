@@ -1,8 +1,13 @@
 package com.st0nefish.discord.openai.data
 
-class EnvironmentVars {
+/**
+ * constants class with the names of the various environment variables used by this bot
+ *
+ * @constructor Create empty Environment vars
+ */
+class EnvironmentVars private constructor() {
     companion object {
-        const val OWNER: String = "DISCORD_GPT_BOT_OWNER"
+        const val BOT_OWNER: String = "DISCORD_GPT_BOT_OWNER"
         const val CMD_PREFIX: String = "DISCORD_GPT_CMD_PREFIX"
         const val BOT_TOKEN: String = "DISCORD_GPT_BOT_TOKEN"
         const val OPENAI_TOKEN: String = "DISCORD_GPT_OPENAI_TOKEN"

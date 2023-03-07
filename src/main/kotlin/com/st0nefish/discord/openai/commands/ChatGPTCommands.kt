@@ -7,11 +7,20 @@ import me.jakejmattson.discordkt.arguments.AnyArg
 import me.jakejmattson.discordkt.commands.commands
 import org.slf4j.LoggerFactory
 
+/**
+ * Chat GPT commands
+ *
+ * @param config bot Config object
+ */
 @Suppress("unused")
 fun chatGPTCommands(config: Config) = commands("ChatGPT") {
     val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.commands.ChatGPTCommands")
     val openAI = OpenAIUtils(config)
 
+    /**
+     * ask-gpt command that takes a prompt and feeds that to Chat GPT then outputs the response. when possible this will
+     * reply with a single message but if the response is too long it will be broken up into multiple.
+     */
     slash("ask-gpt", "ask chat GPT a question") {
         execute(AnyArg("Prompt", "prompt to feed to Chat-GPT")) {
             val prompt = args.first

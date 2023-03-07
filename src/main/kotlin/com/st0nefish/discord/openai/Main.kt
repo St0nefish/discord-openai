@@ -11,6 +11,9 @@ import me.jakejmattson.discordkt.dsl.bot
 import me.jakejmattson.discordkt.locale.Language
 import java.awt.Color
 
+/**
+ * create a Discord bot for communicating with OpenAI APIs
+ */
 @KordPreview
 fun main() {
     // create bot using token retrieved from environment variables

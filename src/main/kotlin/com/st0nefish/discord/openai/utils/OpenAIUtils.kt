@@ -14,6 +14,13 @@ import dev.kord.core.entity.User
 import io.ktor.util.*
 import java.util.*
 
+/**
+ * utility class for communicating with the OpenAI API
+ *
+ * @constructor create a new OpenAIUtils class
+ *
+ * @param config bot config object
+ */
 @OptIn(BetaOpenAI::class)
 class OpenAIUtils(config: Config) {
     // create our openAI client
@@ -22,7 +29,13 @@ class OpenAIUtils(config: Config) {
     // usage tracker
     private val usageTracker = UsageTracker.getInstance()
 
-    // basic text completion using gpt-3.5-turbo model
+    /**
+     * request a basic text completion from Chat GPT for a single input prompt
+     *
+     * @param user User who is requesting the completion
+     * @param prompt String chat completion prompt
+     * @return response from chat GPT
+     */
     suspend fun basicCompletion(user: User, prompt: String): String {
         // check if user can make a request
         if (usageTracker.canMakeRequest(user)) {
@@ -52,7 +65,14 @@ class OpenAIUtils(config: Config) {
         }
     }
 
-    // image completion using DALL·E
+    /**
+     * generate an image via DALL·E
+     *
+     * @param user User who requested the image
+     * @param size size of the image to generate
+     * @param prompt String prompt to create an image for
+     * @return URL of the generated image
+     */
     suspend fun createImage(user: User, size: String, prompt: String): String {
         // check if user is allowed to make a request
         if (usageTracker.canMakeRequest(user)) {

@@ -8,11 +8,20 @@ import me.jakejmattson.discordkt.arguments.ChoiceArg
 import me.jakejmattson.discordkt.commands.commands
 import org.slf4j.LoggerFactory
 
+/**
+ * DALL·E commands
+ *
+ * @param config bot Config object
+ */
 @Suppress("unused")
 fun dallECommands(config: Config) = commands("DallE") {
     val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.commands.DallECommands")
     val openAI = OpenAIUtils(config)
 
+    /**
+     * ask-dalle command that takes an image size and a prompt and will generate an image with DALL·E using those
+     * parameters
+     */
     slash("ask-dalle", "generate an image with DALL·E") {
         execute(
             ChoiceArg(

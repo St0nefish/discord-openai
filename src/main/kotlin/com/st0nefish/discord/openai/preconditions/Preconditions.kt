@@ -4,7 +4,9 @@ import com.st0nefish.discord.openai.data.Config
 import com.st0nefish.discord.openai.data.Constants
 import me.jakejmattson.discordkt.dsl.precondition
 
-// block all commands from bots
+/**
+ * Bot precondition to prevent other bots from using the commands for this bot
+ */
 @Suppress("unused")
 fun botPrecondition() = precondition {
     if (author.isBot) {
@@ -12,7 +14,12 @@ fun botPrecondition() = precondition {
     }
 }
 
-// only process messages from allowed guilds if configured
+/**
+ * Guild precondition to check if the allowed guilds configuration option is present and if yes checks if the command
+ * came from one of the allowed guilds
+ *
+ * @param config bot Config object
+ */
 @Suppress("unused")
 fun guildPrecondition(config: Config) = precondition {
     if (guild != null && config.allowGuilds.isNotEmpty() && !config.allowGuilds.contains(guild?.id?.value)) {
@@ -20,7 +27,12 @@ fun guildPrecondition(config: Config) = precondition {
     }
 }
 
-// only process messages from allowed channels if configured
+/**
+ * Channel precondition to check if the allowed channels configuration option is present and yes checks if the command
+ * came from one of the allowed channels
+ *
+ * @param config bot Config object
+ */
 @Suppress("unused")
 fun channelPrecondition(config: Config) = precondition {
     if (config.allowChannels.isNotEmpty() && !config.allowChannels.contains(channel.id.value)) {
@@ -28,7 +40,11 @@ fun channelPrecondition(config: Config) = precondition {
     }
 }
 
-// admin commands can only be executed by the bot owner
+/**
+ * Admin precondition to check if the user executing admin-only commands is the bot owner
+ *
+ * @param config bot Config object
+ */
 @Suppress("unused")
 fun adminPrecondition(config: Config) = precondition {
     if (command?.category == Constants.ADMIN_CATEGORY && author.id.value != config.owner.value) {
