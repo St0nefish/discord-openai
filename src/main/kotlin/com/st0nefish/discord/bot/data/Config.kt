@@ -8,10 +8,10 @@ import java.util.stream.Collectors
 
 @Serializable
 class Config(
-    val owner: Snowflake = Snowflake(System.getenv(EnvironmentVars.OWNER).toULong()),
-    val botToken: String = System.getenv(EnvironmentVars.BOT_TOKEN),
-    val openAIToken: String = System.getenv(EnvironmentVars.OPENAI_TOKEN),
-    val prefix: String = System.getenv(EnvironmentVars.CMD_PREFIX).ifBlank { "/" },
+    private val botToken: String = System.getenv(EnvironmentVars.BOT_TOKEN),
+    val owner: Snowflake = Snowflake("0".toULong()),
+    val openAIToken: String = System.getenv(EnvironmentVars.OPENAI_TOKEN) ?: "",
+    val prefix: String = System.getenv(EnvironmentVars.CMD_PREFIX) ?: "/",
     val allowGuilds: List<ULong> = getAllowList(System.getenv(EnvironmentVars.ALLOW_GUILDS) ?: ""),
     val allowChannels: List<ULong> = getAllowList(System.getenv(EnvironmentVars.ALLOW_CHANNELS) ?: ""),
 ) : Data() {
