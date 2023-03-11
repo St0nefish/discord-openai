@@ -14,18 +14,6 @@ fun botPrecondition() = precondition {
     }
 }
 
-/**
- * Guild precondition to check if the allowed guilds configuration option is present and if yes checks if the command
- * came from one of the allowed guilds
- *
- * @param config bot Config object
- */
-@Suppress("unused")
-fun guildPrecondition(config: Config) = precondition {
-    if (guild != null && config.allowGuilds.isNotEmpty() && !config.allowGuilds.contains(guild?.id?.value)) {
-        fail("server ${guild?.name} is not in the allow list")
-    }
-}
 
 /**
  * Channel precondition to check if the allowed channels configuration option is present and yes checks if the command

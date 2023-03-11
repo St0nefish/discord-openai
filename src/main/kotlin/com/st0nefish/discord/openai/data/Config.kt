@@ -4,6 +4,7 @@ import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import kotlinx.serialization.Serializable
 import me.jakejmattson.discordkt.dsl.Data
+import java.lang.System.getenv
 import java.util.stream.Collectors
 
 /**
@@ -12,24 +13,39 @@ import java.util.stream.Collectors
  * @property botToken the bot token required to connect this bot to Discord
  * @property owner the Snowflake ID of the Discord user who is the owner of this bot
  * @property openAIToken the token required to connect to the OpenAI API
- * @property prefix the command prefix to use for commands created by this bot - defaults to /
+ * @property cmdPrefix the command prefix to use for commands created by this bot - defaults to /
  * @property allowGuilds list of guild IDs this bot is allowed to receive commands from - defaults to empty
  * @property allowChannels list of channel IDs this bot is allowed to receive commands from - defaults to empty
- * @property maxDailyUserCost maximum daily API spend (in dollars) for each user per day
+ * @property maxCost maximum daily API spend (in dollars) for each user per day
+ * @property costInterval number of hours to track usage data for to compare to maxCost and prevent API usage
  * @constructor Create a Config object
  */
 @Serializable
 class Config(
-    private val botToken: String = System.getenv(EnvironmentVars.BOT_TOKEN),
-    val owner: Snowflake = Snowflake((System.getenv(EnvironmentVars.BOT_OWNER) ?: "0").toULong()),
-    val openAIToken: String = System.getenv(EnvironmentVars.OPENAI_TOKEN) ?: "",
-    val prefix: String = System.getenv(EnvironmentVars.CMD_PREFIX) ?: "/",
-    val allowGuilds: List<ULong> = getAllowList(System.getenv(EnvironmentVars.ALLOW_GUILDS) ?: ""),
-    val allowChannels: List<ULong> = getAllowList(System.getenv(EnvironmentVars.ALLOW_CHANNELS) ?: ""),
-    val maxDailyUserCost: Double = (System.getenv(EnvironmentVars.MAX_DAILY_USER_COST) ?: "0.50").toDouble(),
+    private val botToken: String = getenv(EnvironmentVars.BOT_TOKEN),
+    val owner: Snowflake = Snowflake(getenv(EnvironmentVars.BOT_OWNER).toULong()),
+    val dbPath: String = getenv(EnvironmentVars.DB_PATH) ?: DB_PATH,
+    val cmdPrefix: String = getenv(EnvironmentVars.CMD_PREFIX) ?: CMD_PREFIX,
+    val openAIToken: String = getenv(EnvironmentVars.OPENAI_TOKEN) ?: "",
+    var allowChannels: MutableList<ULong> = csvToListULong(getenv(EnvironmentVars.ALLOW_CHANNELS) ?: ""),
+    var unlimitedUsers: MutableList<ULong> = csvToListULong(getenv(EnvironmentVars.UNLIMITED_USERS) ?: ""),
+    var maxCost: Double = getenv(EnvironmentVars.USER_MAX_COST)?.toDouble() ?: MAX_COST,
+    var costInterval: Int = getenv(EnvironmentVars.COST_TIME_INTERVAL)?.toInt() ?: COST_INTERVAL,
 ) : Data() {
     companion object {
-        fun getAllowList(guildListStr: String): List<ULong> {
+        // default settings
+        const val DB_PATH: String = "./config/data.db"
+        const val CMD_PREFIX: String = "/"
+        const val MAX_COST: Double = 0.50
+        const val COST_INTERVAL: Int = 24
+
+        /**
+         * convert a CSV string to a MutableList of ULong
+         *
+         * @param guildListStr
+         * @return
+         */
+        fun csvToListULong(guildListStr: String): MutableList<ULong> {
             return if (guildListStr.isBlank()) {
                 ArrayList()
             } else {
@@ -54,17 +70,17 @@ class Config(
         response += "%n".format()
         response += formatStr.format("Owner Tag:", "${owner?.tag}")
         response += "%n".format()
-        response += formatStr.format("Command Prefix:", prefix)
+        response += formatStr.format("Command Prefix:", cmdPrefix)
         response += "%n".format()
-        response += formatStr.format("User Daily Cost:", maxDailyUserCost)
+        response += formatStr.format("User Daily Cost:", maxCost)
         response += "%n".format()
         response += formatStr.format("Discord Token:", botToken)
         response += "%n".format()
         response += formatStr.format("OpenAPI Token:", openAIToken)
         response += "%n".format()
-        response += formatStr.format("Allow Guilds:", allowGuilds)
-        response += "%n".format()
         response += formatStr.format("Allow Channels:", allowChannels)
+        response += "%n".format()
+        response += formatStr.format("Unlimited Users:", unlimitedUsers)
         return response
     }
 }

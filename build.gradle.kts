@@ -1,5 +1,5 @@
 group = "com.st0nefish"
-version = "0.1.2"
+version = "0.1.4"
 description = "a discord bot for communicating with chat gpt"
 
 plugins {
@@ -13,11 +13,23 @@ repositories {
 }
 
 dependencies {
-    implementation("dev.kord:kord-core:${Versions.kord}")
+    // logger implementation
     implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
+    // kord for discord api wrapper
+    implementation("dev.kord:kord-core:${Versions.kord}")
+    // discord bot framework (built on kord)
     implementation("me.jakejmattson:DiscordKt:${Versions.discordkt}")
+    // openai api wrapper
     implementation("com.aallam.openai:openai-client:${Versions.openai}")
+    // guava (timed caches)
     implementation("com.google.guava:guava:${Versions.guava}")
+    // jetbrains database api
+    implementation("org.jetbrains.exposed:exposed-core:${Versions.exposed}")
+    implementation("org.jetbrains.exposed:exposed-dao:${Versions.exposed}")
+    implementation("org.jetbrains.exposed:exposed-jdbc:${Versions.exposed}")
+    implementation("org.jetbrains.exposed:exposed-java-time:${Versions.exposed}")
+    // sqlite implementation of exposed
+    implementation("org.xerial:sqlite-jdbc:${Versions.sqlite}")
 }
 
 application {
