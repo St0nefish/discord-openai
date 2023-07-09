@@ -1,11 +1,10 @@
 package com.st0nefish.discord.openai.data
 
-import com.st0nefish.discord.openai.utils.StringFormatUtils.Companion.formatDollarString
+import com.st0nefish.discord.openai.utils.formatDollarString
 import java.time.Instant
 import java.util.*
 
-
-class ChatExchange(
+data class ChatExchange(
     val author: ULong,
     val prompt: String,
     var response: String = "",

@@ -1,10 +1,10 @@
 package com.st0nefish.discord.openai.data
 
-import com.st0nefish.discord.openai.utils.StringFormatUtils.Companion.formatDollarString
+import com.st0nefish.discord.openai.utils.formatDollarString
 import java.time.Instant
 import java.util.*
 
-class APIUsage(
+data class APIUsage(
     var gptRequestTokens: Int = 0,
     var gptResponseTokens: Int = 0,
     var gptTotalTokens: Int = 0,

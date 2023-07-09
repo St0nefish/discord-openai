@@ -1,10 +1,10 @@
 package com.st0nefish.discord.openai.data
 
-import com.st0nefish.discord.openai.utils.StringFormatUtils
+import com.st0nefish.discord.openai.utils.formatDollarString
 import java.time.Instant
 import java.util.*
 
-class ImageExchange(
+data class ImageExchange(
     val author: ULong,
     val size: String,
     val prompt: String,
@@ -13,8 +13,7 @@ class ImageExchange(
     var cost: Double = 0.0,
     var timestamp: Instant = Instant.now(),
     var imageId: UUID = UUID.randomUUID(),
-    private var rowId: Int = 0
-) {
+    private var rowId: Int = 0) {
     override fun toString(): String {
         return """
             row_id:         $rowId
@@ -22,7 +21,7 @@ class ImageExchange(
             image_id:       $imageId
             timestamp:      ${Date.from(timestamp)}
             success:        $success
-            cost:           ${StringFormatUtils.formatDollarString(cost)}
+            cost:           ${formatDollarString(cost)}
             size:           $size
             prompt:         $prompt
             url:            ${url.trim()}

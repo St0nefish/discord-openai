@@ -1,4 +1,4 @@
-// support for ulong
+// support for ULong
 @file:OptIn(ExperimentalUnsignedTypes::class)
 
 package com.st0nefish.discord.openai.utils
@@ -9,15 +9,24 @@ import com.st0nefish.discord.openai.data.Config
 import com.st0nefish.discord.openai.data.ImageExchange
 import dev.kord.core.entity.User
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.Slf4jSqlDebugLogger
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.addLogger
+import org.jetbrains.exposed.sql.andWhere
+import org.jetbrains.exposed.sql.count
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.sum
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.time.Instant
-import java.util.*
 import kotlin.time.Duration.Companion.hours
 
 /**
@@ -27,45 +36,48 @@ import kotlin.time.Duration.Companion.hours
  *
  * @param config the bot config object
  */
-class DatabaseUtils private constructor(config: Config) {
+class DatabaseUtils private constructor(config: Config = Config.instance()) {
     companion object {
+        // logger
+        private val log: Logger = LoggerFactory.getLogger(this::class.java)
+
+        // singleton object
         @Volatile
         private var instance: DatabaseUtils? = null
 
         /**
-         * init function to instantiate our singleton database object
-         *
-         * @param config
-         */
-        @Synchronized
-        fun init(config: Config) {
-            this.instance = DatabaseUtils(config)
-        }
-
-        /**
-         * instance function to get our singleton database object
+         * instance function to get our singleton database object - instantiates it if not already done
          *
          * @return
          */
         @Synchronized
         fun instance(): DatabaseUtils {
-            return instance!!
+            if (null == instance) {
+                this.instance = DatabaseUtils()
+            }
+            return instance !!
         }
+
+        /**
+         * set instance to return - used for testing
+         *
+         * @param instance
+         */
+        @Synchronized
+        fun setInstance(instance: DatabaseUtils) = instance.also { this.instance = it }
     }
 
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
+    // config object
     private val config: Config
 
     /**
      * init block to connect to the database, set transaction level, and make sure our required tables exist
      */
-    init {
-        // store db path
-        this.config = config
-        // connect to sqlite database and configure isolation level
+    init { // store db path
+        this.config = config // connect to sqlite database and configure isolation level
         Database.connect("jdbc:sqlite:${config.dbPath}", "org.sqlite.JDBC")
-        TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
-        // make sure the required tables exist
+        TransactionManager.manager.defaultIsolationLevel =
+            Connection.TRANSACTION_SERIALIZABLE // make sure the required tables exist
         transaction {
             addLogger(Slf4jSqlDebugLogger)
             SchemaUtils.create(Conversations)
@@ -234,8 +246,7 @@ class DatabaseUtils private constructor(config: Config) {
                     latest[Images.cost],
                     latest[Images.timestamp],
                     latest[Images.imageId],
-                    latest[Images.id].value
-                )
+                    latest[Images.id].value)
             }
         }
         return image
@@ -272,14 +283,12 @@ class DatabaseUtils private constructor(config: Config) {
     fun getAPIUsage(user: ULong? = null, timed: Boolean = false): APIUsage {
         val usage = APIUsage()
         transaction {
-            addLogger(Slf4jSqlDebugLogger)
-            // build queries
+            addLogger(Slf4jSqlDebugLogger) // build queries
             val chatQuery = Conversations.slice(
                 Conversations.requestTokens.sum(),
                 Conversations.responseTokens.sum(),
                 Conversations.totalTokens.sum(),
-                Conversations.cost.sum()
-            ).selectAll()
+                Conversations.cost.sum()).selectAll()
             val imgQuery = Images.slice(Images.id.count(), Images.cost.sum()).selectAll()
 
             // if user is passed add filter
@@ -321,37 +330,32 @@ class DatabaseUtils private constructor(config: Config) {
      * @return Boolean - can they make another request
      */
     fun canMakeRequest(user: User): Boolean {
-        if (user.id.value == config.owner.value) {
+        return if (user.id.value == config.owner.value) {
             // user is bot owner
             log.info("${user.tag} is bot owner - allowing request")
-            return true
+            true
         } else if (config.unlimitedUsers.contains(user.id.value)) {
             // user is in unlimited list
             log.info("${user.tag} is in unlimited list - allowing request")
-            return true
+            true
         } else {
-            if (getTimedCost(user.id.value) < config.maxCost) {
+            return if (getTimedCost(user.id.value) < config.maxCost) {
                 // user has not exceeded daily limit
                 log.info(
                     "${user.tag} has used ${
-                        StringFormatUtils.formatDollarString(getTimedCost(user.id.value))
+                        formatDollarString(getTimedCost(user.id.value))
                     } out of daily limit ${
-                        StringFormatUtils.formatDollarString(config.maxCost)
-                    }"
-                )
-                return true
-            } else {
-                // user has exceeded daily limit
+                        formatDollarString(config.maxCost)
+                    }")
+                true
+            } else { // user has exceeded daily limit
                 log.info(
                     "user ${user.tag} has exceeded daily limit of ${
-                        StringFormatUtils.formatDollarString(config.maxCost)
+                        formatDollarString(config.maxCost)
                     }\n```\n${
-                        StringFormatUtils.getUsageString(
-                            user, config, getAPIUsage(user.id.value), getAPIUsage(user.id.value, true)
-                        )
-                    }\n```"
-                )
-                return false
+                        getUsageString(user, config, getAPIUsage(user.id.value), getAPIUsage(user.id.value, true))
+                    }\n```")
+                false
             }
         }
     }
