@@ -57,7 +57,6 @@ tasks.register<Copy>("dockerCopyDist") {
     // build distribution tar and copy to build/docker/discord-openai.tar
     from(tasks.distTar.get())
     into(layout.buildDirectory.dir("docker"))
-//    rename("discord-openai-(.+).tar", "discord-openai.tar")
 }
 
 tasks.register<Copy>("dockerCopyLogger") {
@@ -73,12 +72,16 @@ tasks.register<Copy>("generateDockerfile") {
     description = "generate dockerfile in docker build directory"
     group = "docker"
 
+    // gradle properties
+    val dockerBaseImg: String by project
+    val dockerImgVersion: String = project.version.toString()
+
     // generate dockerfile into build/docker
     from(layout.projectDirectory.file("docker/Dockerfile"))
     into(layout.buildDirectory.dir("docker"))
     filter(
         ReplaceTokens::class, "tokens" to mapOf(
-            "docker_base_image" to providers.gradleProperty("dockerBaseImg"), "project_version" to project.version))
+            "docker_base_image" to dockerBaseImg, "project_version" to dockerImgVersion))
 }
 
 tasks.register<Exec>("buildDockerImage") {
