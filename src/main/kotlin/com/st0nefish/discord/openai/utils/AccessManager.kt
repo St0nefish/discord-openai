@@ -2,9 +2,7 @@ package com.st0nefish.discord.openai.utils
 
 import com.st0nefish.discord.openai.data.Config
 import dev.kord.common.entity.ChannelType
-import dev.kord.core.behavior.interaction.respondEphemeral
 import dev.kord.core.entity.interaction.ApplicationCommandInteraction
-import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 
 /**
  * was the current command executed by the bot owner
@@ -27,41 +25,42 @@ fun cmdByAdmin(interaction: ApplicationCommandInteraction, config: Config = Conf
     cmdByOwner(interaction, config) || config.admins.contains(interaction.user.id.value)
 
 /**
- * check if the current interaction is allowed
+ * check if the current interaction satisfies standard command requirements
  *
  * @param interaction the Command Interaction to check
  * @param config current configuration state
  * @return Boolean - is access allowed?
  */
 suspend fun allowStandardAccess(
-    interaction: ChatInputCommandInteraction, config: Config = Config.instance()): Boolean {
+    interaction: ApplicationCommandInteraction, config: Config = Config.instance()): Boolean {
     // never allow bots
     if (interaction.user.isBot) return false
 
-    // always allow master
-    if (interaction.user.id == config.owner) return true
+    // always allow admins
+    if (cmdByAdmin(interaction, config)) return true
 
     // otherwise access depends on where the message came from
-    return when (interaction.channel.asChannel().type) {
+    return when (interaction.getChannel().type) {
         // guild messages allowed only in select channels
         ChannelType.GuildText -> {
-            if (! config.allowChannels.contains(interaction.channel.asChannel().id.value)) {
-                interaction.respondEphemeral { content = "I am not allowed to respond in this channel" }
-                false
-            } else {
-                true
-            }
+            config.allowChannels.contains(interaction.getChannel().id.value)
         }
         // direct messages allowed only from select users
         ChannelType.DM -> {
-            if (! config.allowUsers.contains(interaction.user.id.value)) {
-                interaction.respondEphemeral { content = "I am not allowed to respond to DMs from you" }
-                false
-            } else {
-                true
-            }
+            config.allowUsers.contains(interaction.user.id.value)
         }
         // otherwise assume not allowed
         else -> false
     }
+}
+
+/**
+ * check if the current interaction satisfies admin command requirements
+ *
+ * @param interaction the command interaction to check
+ * @param config current configuration state
+ * @return Boolean - is access allowed
+ */
+fun allowAdminAccess(interaction: ApplicationCommandInteraction, config: Config = Config.instance()): Boolean {
+    return cmdByAdmin(interaction, config)
 }

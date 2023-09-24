@@ -1,11 +1,10 @@
 package com.st0nefish.discord.openai
 
+import com.st0nefish.discord.openai.commands.deregisterAllCommands
 import com.st0nefish.discord.openai.commands.registerAdminCommands
 import com.st0nefish.discord.openai.commands.registerChatCommands
 import com.st0nefish.discord.openai.commands.registerImageCommands
 import com.st0nefish.discord.openai.data.Config
-import com.st0nefish.discord.openai.data.ENV_BOT_TOKEN
-import com.st0nefish.discord.openai.data.ENV_CLEAN_START
 import dev.kord.common.entity.PresenceStatus
 import dev.kord.core.Kord
 import dev.kord.gateway.Intents
@@ -14,12 +13,18 @@ import org.slf4j.LoggerFactory
 
 private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.main")
 
-suspend fun main() { // load config
+suspend fun main() {
+    // load bot config
+    val config: Config = Config.instance()
+
+    // log startup
+    log.info("starting discord-openai bot using token [${config.botToken}]...")
+
     // create kord object using token from environment variable
-    val kord = Kord(System.getenv(ENV_BOT_TOKEN))
+    val kord = Kord(config.botToken)
 
     // if enabled ? de-register all current commands
-    if (System.getenv(ENV_CLEAN_START)?.toBoolean() == true) {
+    if (config.cleanStart) {
         deregisterAllCommands(kord)
     }
 
@@ -39,28 +44,6 @@ suspend fun main() { // load config
             status = PresenceStatus.Online
             streaming("with OpenAI", "https://openai.com/")
         }
-    }
-}
-
-/**
- * Deregister all commands
- *
- * @param kord current Kord object
- */
-private suspend fun deregisterAllCommands(kord: Kord) {
-    val applicationId = kord.resources.applicationId // deregister global commands
-    val globalCommands = kord.rest.interaction.getGlobalApplicationCommands(applicationId)
-    log.info("de-registering ${globalCommands.size} global commands...")
-    globalCommands.forEach { globalCommand ->
-        log.info("de-registering global command [${globalCommand.name}]")
-        kord.rest.interaction.deleteGlobalApplicationCommand(applicationId, globalCommand.id)
-    } // deregister guild commands for all guilds
-    val guildCommands = kord.guilds.toList()
-        .flatMap { guild -> kord.rest.interaction.getGuildApplicationCommands(applicationId, guild.id) }.toList()
-    log.info("de-registering ${guildCommands.size} guild commands...")
-    guildCommands.forEach { command ->
-        log.info("de-registering guild [${command.guildId.value?.value}] command [${command.name}]")
-        kord.rest.interaction.deleteGuildApplicationCommand(applicationId, command.guildId.value !!, command.id)
     }
 }
 

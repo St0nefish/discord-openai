@@ -1,22 +1,15 @@
 package com.st0nefish.discord.openai.commands
 
 import com.st0nefish.discord.openai.utils.OpenAIUtils
-import com.st0nefish.discord.openai.utils.allowStandardAccess
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
-import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
-import dev.kord.core.on
 import dev.kord.rest.builder.interaction.string
-import org.slf4j.LoggerFactory
 
 // constants
 private const val MAX_MESSAGE_LENGTH = 2000
 private const val CHAT_DELIM = "\n\n"
 private const val CHAT_PROMPT = "prompt"
-
-// logger
-private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.registerChatCommands")
 
 /**
  * register chat commands
@@ -26,28 +19,11 @@ private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.register
  */
 suspend fun registerChatCommands(
     kord: Kord, openAI: OpenAIUtils = OpenAIUtils.instance()) { // register ask-gpt command
-    // define command key
-    val cmd = "ask-gpt"
-
-    // register chat command
-    kord.createGlobalChatInputCommand(cmd, "send a prompt to chat GPT") {
-        string(CHAT_PROMPT, "the prompt to send to Chat GPT") {
-            required = true
-        }
-        log.info("registered command: $name")
-    }
-
-    // handle chat command
-    kord.on<ChatInputCommandInteractionCreateEvent> {
-        // access control
-        if (! allowStandardAccess(interaction)) return@on
-
-        // parse command
-        when (interaction.command.data.name.value) {
-            cmd -> handleChatCommand(interaction, openAI)
-            else -> return@on
-        }
-    }
+    registerGlobalChatCommand(kord,
+        "ask-gpt",
+        "send a prompt to GPT",
+        { string(CHAT_PROMPT, "the prompt to send to Chat GPT") { required = true } },
+        { interaction -> handleChatCommand(interaction, openAI) })
 }
 
 /**

@@ -1,6 +1,6 @@
-/build/
-/**/build/
-/.gradle/
-/**/.gradle
-/config/
-/.idea/sonarlint/
+build/
+**/build/
+.gradle/
+**/.gradle
+.idea/
+config/

@@ -4,6 +4,7 @@ import dev.kord.common.entity.Snowflake
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.lang.System.getenv
 import java.util.stream.Collectors
@@ -16,13 +17,13 @@ data class Config(
     // path to config json
     private val configPath: String = getenv(ENV_CONFIG_PATH) ?: CONFIG_PATH,
     // discord bot token
-    private val botToken: String = getenv(ENV_BOT_TOKEN),
+    val botToken: String = getenv(ENV_BOT_TOKEN),
     // id of the discord user who owns the bot (can configure it)
     val owner: Snowflake = Snowflake(getenv(ENV_BOT_OWNER).toULong()),
     // list of admin users
     val admins: MutableList<ULong> = csvToListULong(getenv(ENV_BOT_ADMINS) ?: ""),
-    // id of the admin guild
-    val adminGuild: Snowflake? = Snowflake(getenv(ENV_ADMIN_GUILD)),
+    // list of admin guilds
+    val adminGuilds: MutableList<ULong> = csvToListULong(getenv(ENV_ADMIN_GUILDS) ?: ""),
     // path to usage database
     val dbPath: String = getenv(ENV_DB_PATH) ?: DB_PATH,
     // open ai api token
@@ -37,10 +38,13 @@ data class Config(
     var maxCost: Double = getenv(USER_MAX_COST)?.toDouble() ?: MAX_COST,
     // when a user is limited what is the cost interval (in hours)
     var costInterval: Int = getenv(ENV_COST_TIME_INTERVAL)?.toInt() ?: COST_INTERVAL,
-) {
+    // de-register all commands on boot
+    var cleanStart: Boolean = getenv(ENV_CLEAN_START).toBoolean()) {
+
+    // static companion object
     companion object {
-        // json serializer
-        private val serializer = Json { ignoreUnknownKeys = true }
+        // logger
+        private val LOG = LoggerFactory.getLogger(Config::class.java)
 
         // default settings
         const val CONFIG_PATH = "./config/config.json"
@@ -51,6 +55,9 @@ data class Config(
         // singleton instance
         @Volatile
         private var instance: Config? = null
+
+        // json serializer
+        private val serializer = Json { ignoreUnknownKeys = true }
 
         /**
          * get the singleton config instance. instantiate if not already done
@@ -63,6 +70,16 @@ data class Config(
                 instance = fromFile()
             }
             return instance !!
+        }
+
+        /**
+         * set the instance to use system-wide
+         *
+         * @param config
+         */
+        @Synchronized
+        fun setInstance(config: Config) {
+            instance = config
         }
 
         /**
@@ -159,7 +176,7 @@ data class Config(
         var response = ""
         response += formatStr.format("Owner ID:", owner.value)
         response += "%n".format()
-        response += formatStr.format("Admin Guild:", adminGuild?.value)
+        response += formatStr.format("Admin Guilds:", adminGuilds)
         response += "%n".format()
         response += formatStr.format("Admins:", admins)
         response += "%n".format()
@@ -171,7 +188,7 @@ data class Config(
         response += "%n".format()
         response += formatStr.format("Discord Token:", botToken)
         response += "%n".format()
-        response += formatStr.format("OpenAPI Token:", openAIToken)
+        response += formatStr.format("OpenAI Token:", openAIToken)
         response += "%n".format()
         response += formatStr.format("Config Path:", configPath)
         response += "%n".format()
@@ -180,11 +197,21 @@ data class Config(
         response += formatStr.format("Max Cost:", maxCost)
         response += "%n".format()
         response += formatStr.format("Cost Interval:", costInterval)
+        response += "%n".format()
+        response += formatStr.format("Clean Start:", cleanStart)
         return response
     }
 
     /**
      * serialize this config object to a json file
      */
-    fun toFile() = File(configPath).writeText(serializer.encodeToString(this))
+    fun toFile() {
+        val configFile = File(configPath)
+        if (! configFile.exists()) {
+            LOG.info("config file $configPath not found... creating")
+            configFile.parentFile.mkdirs()
+            configFile.createNewFile()
+        }
+        configFile.writeText(serializer.encodeToString(this))
+    }
 }

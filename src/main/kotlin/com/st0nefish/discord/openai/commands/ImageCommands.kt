@@ -1,12 +1,9 @@
 package com.st0nefish.discord.openai.commands
 
 import com.st0nefish.discord.openai.utils.OpenAIUtils
-import com.st0nefish.discord.openai.utils.allowStandardAccess
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
-import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
-import dev.kord.core.on
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.modify.embed
 import org.slf4j.LoggerFactory
@@ -25,12 +22,7 @@ private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.register
  * @param openAI
  */
 suspend fun registerImageCommands(kord: Kord, openAI: OpenAIUtils = OpenAIUtils.instance()) {
-    // command config
-    val cmd = "ask-dalle"
-
-
-    // register image command
-    kord.createGlobalChatInputCommand(cmd, "send a prompt to chat GPT") {
+    registerGlobalChatCommand(kord, "ask-dalle", "send a prompt to Dall-E", {
         string(IMG_SIZE, "Generated image size") {
             required = true
             choice("256x256", "256x256")
@@ -40,20 +32,9 @@ suspend fun registerImageCommands(kord: Kord, openAI: OpenAIUtils = OpenAIUtils.
         string(IMG_PROMPT, "the prompt to send to DALL-E") {
             required = true
         }
-        log.info("registered command: $name")
-    }
-
-    // handle image command
-    kord.on<ChatInputCommandInteractionCreateEvent> {
-        // access control
-        if (! allowStandardAccess(interaction)) return@on
-
-        // parse command
-        when (interaction.command.data.name.value) {
-            cmd -> handleImageCommand(interaction, openAI)
-            else -> return@on
-        }
-    }
+    }, { interaction ->
+        handleImageCommand(interaction, openAI)
+    })
 }
 
 /**

@@ -1,10 +1,12 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 group = "com.st0nefish"
 version = "0.1.5"
 description = "a discord bot for communicating with OpenAI"
 
 plugins {
-    kotlin("jvm") version Versions.kotlin
-    kotlin("plugin.serialization") version Versions.kotlin
+    kotlin("jvm") version Versions.KOTLIN
+    kotlin("plugin.serialization") version Versions.KOTLIN
     application
 }
 
@@ -14,20 +16,20 @@ repositories {
 
 dependencies {
     // json serialization plugin
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.serialization}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.SERIALIZATION}")
     // logger implementation
-    implementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
+    implementation("org.slf4j:slf4j-simple:${Versions.SLF4J}")
     // kord for discord api wrapper
-    implementation("dev.kord:kord-core:${Versions.kord}")
+    implementation("dev.kord:kord-core:${Versions.KORD}")
     // openai api wrapper
-    implementation("com.aallam.openai:openai-client:${Versions.openai}")
+    implementation("com.aallam.openai:openai-client:${Versions.OPENAI}")
     // jetbrains database api
-    implementation("org.jetbrains.exposed:exposed-core:${Versions.exposed}")
-    implementation("org.jetbrains.exposed:exposed-dao:${Versions.exposed}")
-    implementation("org.jetbrains.exposed:exposed-jdbc:${Versions.exposed}")
-    implementation("org.jetbrains.exposed:exposed-java-time:${Versions.exposed}")
+    implementation("org.jetbrains.exposed:exposed-core:${Versions.EXPOSED}")
+    implementation("org.jetbrains.exposed:exposed-dao:${Versions.EXPOSED}")
+    implementation("org.jetbrains.exposed:exposed-jdbc:${Versions.EXPOSED}")
+    implementation("org.jetbrains.exposed:exposed-java-time:${Versions.EXPOSED}")
     // sqlite implementation of exposed
-    implementation("org.xerial:sqlite-jdbc:${Versions.sqlite}")
+    implementation("org.xerial:sqlite-jdbc:${Versions.SQLITE}")
 }
 
 application {
@@ -39,22 +41,74 @@ tasks.test {
 }
 
 tasks.compileKotlin {
-    kotlinOptions.jvmTarget = Versions.java
+    kotlinOptions.jvmTarget = Versions.JAVA
 }
 
 tasks.compileJava {
-    sourceCompatibility = Versions.java
-    targetCompatibility = Versions.java
+    sourceCompatibility = Versions.JAVA
+    targetCompatibility = Versions.JAVA
 }
 
-//tasks.register<WriteProperties>("writeProperties") {
-//    property("name", project.name)
-//    property("description", project.description.toString())
-//    property("version", project.version)
-//    property("url", "https://github.com/St0nefish/discord-gpt")
-//    setOutputFile("src/main/resources/bot.properties")
-//}
+tasks.register<Copy>("dockerCopyDist") {
+    description = "copy the distribution to the docker build directory"
+    group = "docker"
+    dependsOn("distTar")
 
+    // build distribution tar and copy to build/docker/discord-openai.tar
+    from(tasks.distTar.get())
+    into(layout.buildDirectory.dir("docker"))
+//    rename("discord-openai-(.+).tar", "discord-openai.tar")
+}
+
+tasks.register<Copy>("dockerCopyLogger") {
+    description = "copy the logger config to the docker build directory"
+    group = "docker"
+
+    // copy logger config to build/docker
+    from(layout.buildDirectory.file("resources/main/simplelogger.properties"))
+    into(layout.buildDirectory.dir("docker"))
+}
+
+tasks.register<Copy>("generateDockerfile") {
+    description = "generate dockerfile in docker build directory"
+    group = "docker"
+
+    // generate dockerfile into build/docker
+    from(layout.projectDirectory.file("docker/Dockerfile"))
+    into(layout.buildDirectory.dir("docker"))
+    filter(
+        ReplaceTokens::class, "tokens" to mapOf(
+            "docker_base_image" to providers.gradleProperty("dockerBaseImg"), "project_version" to project.version))
+}
+
+tasks.register<Exec>("buildDockerImage") {
+    description = "build the docker image"
+    group = "docker"
+    dependsOn("dockerCopyDist", "dockerCopyLogger", "generateDockerfile")
+
+    // build docker image
+    workingDir(layout.buildDirectory.dir("docker"))
+    commandLine(
+        "docker",
+        "build",
+        "-t",
+        "st0nefish/${project.name}:${project.version}",
+        "-t",
+        "st0nefish/${project.name}:latest",
+        ".")
+}
+
+tasks.register<Exec>("pushDockerImage") {
+    description = "push the latest docker image"
+    group = "docker"
+    dependsOn("buildDockerImage")
+
+    // push docker image
+    workingDir(layout.buildDirectory.dir("docker"))
+    commandLine("docker", "push", "st0nefish/${project.name}:${project.version}")
+}
+
+// create fat jar with all dependencies
 val fatJar = task<Jar>("fatJar") {
     description = "create an executable jar with all dependencies"
     group = "build"
@@ -69,8 +123,4 @@ val fatJar = task<Jar>("fatJar") {
         if (it.isDirectory) it else zipTree(it)
     } + sourceSets.main.get().output
     from(contents)
-}
-
-tasks.build {
-    dependsOn(fatJar)
 }
