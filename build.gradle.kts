@@ -65,7 +65,7 @@ tasks.register<Copy>("dockerCopyLogger") {
     group = "docker"
 
     // copy logger config to build/docker
-    from(layout.buildDirectory.file("resources/main/simplelogger.properties"))
+    from(layout.projectDirectory.file("docker/simplelogger.properties"))
     into(layout.buildDirectory.dir("docker"))
 }
 
