@@ -1,6 +1,6 @@
-build/
-**/build/
-.gradle/
-**/.gradle
-.idea/
-config/
+/build/
+/**/build/
+/.gradle/
+/**/.gradle
+/config/
+/.idea/
