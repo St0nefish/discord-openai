@@ -11,6 +11,7 @@ import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import com.st0nefish.discord.openai.data.ChatExchange
 import com.st0nefish.discord.openai.data.Config
+import com.st0nefish.discord.openai.ENV_OPENAI_TOKEN
 import com.st0nefish.discord.openai.data.ImageExchange
 import dev.kord.core.entity.User
 import org.slf4j.LoggerFactory
@@ -24,7 +25,10 @@ import org.slf4j.LoggerFactory
  */
 @OptIn(BetaOpenAI::class)
 class OpenAIUtils private constructor(
-    private val config: Config = Config.instance(), private val database: DatabaseUtils = DatabaseUtils.instance()) {
+    private val config: Config = Config.instance(),
+    private val database: DatabaseUtils = DatabaseUtils.instance(),
+    openaiToken: String = System.getenv(ENV_OPENAI_TOKEN) !!) {
+
     companion object {
         // constants
         private const val TEXT_TOKEN_COST = 0.002 / 1000
@@ -64,14 +68,14 @@ class OpenAIUtils private constructor(
     private val log = LoggerFactory.getLogger(OpenAIUtils::class.java)
 
     // openAI API
-    private val openAI: OpenAI = OpenAI(config.openAIToken)
+    private val openAI: OpenAI = OpenAI(openaiToken)
 
     /**
-     * request a basic text completion from Chat GPT for a single input prompt
+     * request a basic text completion from ChatGPT for a single input prompt
      *
      * @param user User who is requesting the completion
      * @param prompt String chat completion prompt
-     * @return response from chat GPT
+     * @return response from ChatGPT
      */
     suspend fun getChatResponse(user: User, prompt: String): ChatExchange { // log question
         log.info("${user.tag} asked: $prompt") // create exchange object for return
@@ -102,7 +106,7 @@ class OpenAIUtils private constructor(
         } else { // user exceeded usage cap
             exchange.success = false
             exchange.response = """
-               exceeded API usage limit of \$${config.maxCost} per ${config.costInterval} hours:
+               exceeded API usage limit of \$${config.usageCostValue} per ${config.usageCostInterval} hours:
                ```
                ${database.getAPIUsage(user.id.value, true)}
                ```
@@ -146,7 +150,7 @@ class OpenAIUtils private constructor(
         } else { // handle case where user has violated cap
             image.success = false
             image.url = """
-               exceeded API usage limit of \$${config.maxCost} per ${config.costInterval} hours:
+               exceeded API usage limit of \$${config.usageCostValue} per ${config.usageCostInterval} hours:
                ```
                ${database.getAPIUsage(user.id.value, true)}
                ```

@@ -1,21 +1,23 @@
-# start from corretto 17 image
+# start from configured base image
 FROM @docker_base_image@
 
-# set author label
+# set labels
 LABEL authors="st0nefish" \
       version="@project_version@" \
       description="Discord bot to utilize OpenAI"
 
 # create app directory
-RUN mkdir /app
+#RUN mkdir /app
 
-# add our distribution and move to static directory
-ADD discord-openai-@project_version@.tar /app
-RUN mv /app/discord-openai-@project_version@ /app/discord-openai
+# extract our latest distribution to /tmp
+ADD discord-openai-@project_version@.tar /tmp
 
-# add logger config
-ADD simplelogger.properties /app/discord-openai
+# move extracted distribution to /app for easier usage
+RUN mv /tmp/discord-openai-@project_version@ /app
+
+# add logger config file
+ADD simplelogger.properties /app
 
 # set working directory and execute
-WORKDIR /app/discord-openai
+WORKDIR /app
 CMD ["bin/discord-openai"]

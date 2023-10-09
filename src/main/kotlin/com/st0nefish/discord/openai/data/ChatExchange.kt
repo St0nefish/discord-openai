@@ -1,6 +1,6 @@
 package com.st0nefish.discord.openai.data
 
-import com.st0nefish.discord.openai.utils.formatDollarString
+import com.st0nefish.discord.openai.data.APIUsage.Companion.formatDollarString
 import java.time.Instant
 import java.util.*
 

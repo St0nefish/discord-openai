@@ -1,5 +1,6 @@
 package com.st0nefish.discord.openai.commands
 
+import com.st0nefish.discord.openai.utils.CommandManager
 import com.st0nefish.discord.openai.utils.OpenAIUtils
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
@@ -14,12 +15,14 @@ private const val CHAT_PROMPT = "prompt"
 /**
  * register chat commands
  *
- * @param kord
- * @param openAI
+ * @param kord {@link Kord} instance to interact with Discord
+ * @param openAI {@link OpenAIUtils} instance to interact with OpenAI
  */
 suspend fun registerChatCommands(
-    kord: Kord, openAI: OpenAIUtils = OpenAIUtils.instance()) { // register ask-gpt command
-    registerGlobalChatCommand(kord,
+    kord: Kord, openAI: OpenAIUtils = OpenAIUtils.instance()) {
+    // register ask-gpt command
+    CommandManager.registerGlobalChatCommand(
+        kord,
         "ask-gpt",
         "send a prompt to GPT",
         { string(CHAT_PROMPT, "the prompt to send to Chat GPT") { required = true } },
@@ -29,8 +32,8 @@ suspend fun registerChatCommands(
 /**
  * handle chat command
  *
- * @param interaction
- * @param openAI
+ * @param interaction {@link ChatInputCommandInteraction} details about the current command interaction
+ * @param openAI {@link OpenAIUtils} instance to interact with OpenAI
  */
 private suspend fun handleChatCommand(interaction: ChatInputCommandInteraction, openAI: OpenAIUtils) {
     // acknowledge command - defer response

@@ -1,6 +1,17 @@
 package com.st0nefish.discord.openai.data
 
-import dev.kord.common.entity.Snowflake
+import com.st0nefish.discord.openai.ENV_ADMIN_GUILDS
+import com.st0nefish.discord.openai.ENV_ADMIN_USERS
+import com.st0nefish.discord.openai.ENV_ALLOW_CHANNELS
+import com.st0nefish.discord.openai.ENV_ALLOW_USERS
+import com.st0nefish.discord.openai.ENV_BOT_NAME
+import com.st0nefish.discord.openai.ENV_COST_INTERVAL
+import com.st0nefish.discord.openai.ENV_COST_MAX
+import com.st0nefish.discord.openai.ENV_PATH_CONFIG
+import com.st0nefish.discord.openai.ENV_UNLIMITED_USERS
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -12,52 +23,65 @@ import java.util.stream.Collectors
 /**
  * bot Config object to hold various configuration options
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class Config(
-    // path to config json
-    private val configPath: String = getenv(ENV_CONFIG_PATH) ?: CONFIG_PATH,
-    // discord bot token
-    val botToken: String = getenv(ENV_BOT_TOKEN),
-    // id of the discord user who owns the bot (can configure it)
-    val owner: Snowflake = Snowflake(getenv(ENV_BOT_OWNER).toULong()),
+    // name of the bot
+    @SerialName("bot_name")
+    @EncodeDefault
+    val botName: String = getenv(ENV_BOT_NAME) ?: DEFAULT_BOT_NAME,
     // list of admin users
-    val admins: MutableList<ULong> = csvToListULong(getenv(ENV_BOT_ADMINS) ?: ""),
+    @SerialName("admin_users")
+    @EncodeDefault
+    val adminUsers: MutableSet<ULong> = csvToSetULong(getenv(ENV_ADMIN_USERS) ?: ""),
     // list of admin guilds
-    val adminGuilds: MutableList<ULong> = csvToListULong(getenv(ENV_ADMIN_GUILDS) ?: ""),
-    // path to usage database
-    val dbPath: String = getenv(ENV_DB_PATH) ?: DB_PATH,
-    // open ai api token
-    val openAIToken: String = getenv(ENV_OPENAI_TOKEN) ?: "",
+    @SerialName("admin_guilds")
+    @EncodeDefault
+    val adminGuilds: MutableSet<ULong> = csvToSetULong(getenv(ENV_ADMIN_GUILDS) ?: ""),
     // list of channels to allow messages in
-    var allowChannels: MutableList<ULong> = csvToListULong(getenv(ENV_ALLOW_CHANNELS) ?: ""),
+    @SerialName("allow_channels")
+    @EncodeDefault
+    var allowChannels: MutableSet<ULong> = csvToSetULong(getenv(ENV_ALLOW_CHANNELS) ?: ""),
     // list of users to allow use via private message
-    var allowUsers: MutableList<ULong> = csvToListULong(getenv(ENV_ALLOW_USERS) ?: ""),
+    @SerialName("allow_users")
+    @EncodeDefault
+    var allowUsers: MutableSet<ULong> = csvToSetULong(getenv(ENV_ALLOW_USERS) ?: ""),
     // list of users exempt from usage limits
-    var unlimitedUsers: MutableList<ULong> = csvToListULong(getenv(ENV_UNLIMITED_USERS) ?: ""),
+    @SerialName("unlimited_users")
+    @EncodeDefault
+    var unlimitedUsers: MutableSet<ULong> = csvToSetULong(getenv(ENV_UNLIMITED_USERS) ?: ""),
     // when a user is limited what is the max cost to allow per interval
-    var maxCost: Double = getenv(USER_MAX_COST)?.toDouble() ?: MAX_COST,
+    @SerialName("usage_cost_value")
+    @EncodeDefault
+    var usageCostValue: Double = getenv(ENV_COST_MAX)?.toDouble() ?: DEFAULT_COST_MAX,
     // when a user is limited what is the cost interval (in hours)
-    var costInterval: Int = getenv(ENV_COST_TIME_INTERVAL)?.toInt() ?: COST_INTERVAL,
-    // de-register all commands on boot
-    var cleanStart: Boolean = getenv(ENV_CLEAN_START).toBoolean()) {
-
+    @SerialName("usage_cost_interval")
+    @EncodeDefault
+    var usageCostInterval: Int = getenv(ENV_COST_INTERVAL)?.toInt() ?: DEFAULT_COST_INTERVAL,
+) {
     // static companion object
     companion object {
         // logger
         private val LOG = LoggerFactory.getLogger(Config::class.java)
 
         // default settings
-        const val CONFIG_PATH = "./config/config.json"
-        const val DB_PATH: String = "./config/data.db"
-        const val MAX_COST: Double = 0.50
-        const val COST_INTERVAL: Int = 24
+        const val DEFAULT_BOT_NAME = "Aithena"
+        const val DEFAULT_COST_MAX: Double = 1.0 // $1.00
+        const val DEFAULT_COST_INTERVAL: Int = 168 // per week
+
+        // path to config file
+        private val configPath: String = getenv(ENV_PATH_CONFIG) ?: "./config/config.json"
 
         // singleton instance
         @Volatile
         private var instance: Config? = null
 
         // json serializer
-        private val serializer = Json { ignoreUnknownKeys = true }
+        private val serializer = Json {
+            ignoreUnknownKeys = true
+            prettyPrint = true
+            prettyPrintIndent = "  "
+        }
 
         /**
          * get the singleton config instance. instantiate if not already done
@@ -69,30 +93,42 @@ data class Config(
             if (null == instance) {
                 instance = fromFile()
             }
-            return instance !!
+            return instance!!
         }
 
         /**
          * set the instance to use system-wide
          *
-         * @param config
+         * @param instance bot configuration object
          */
         @Synchronized
-        fun setInstance(config: Config) {
-            instance = config
-        }
+        fun setInstance(instance: Config) = instance.also { this.instance = it }
 
         /**
          * convert a CSV string to a MutableList of ULong
          *
-         * @param guildListStr
+         * @param csvStr
          * @return
          */
-        fun csvToListULong(guildListStr: String): MutableList<ULong> {
-            return if (guildListStr.isBlank()) {
-                ArrayList()
+        fun csvToSetULong(csvStr: String): MutableSet<ULong> {
+            return if (csvStr.isBlank()) {
+                HashSet()
             } else {
-                guildListStr.split(",").stream().map { it.toULong() }.collect(Collectors.toList())
+                csvStr.split(",").stream().map { it.toULong() }.collect(Collectors.toSet())
+            }
+        }
+
+        /**
+         * parse a string representation of a map to return the map value
+         *
+         * @param mapStr {@link String} text version of the map
+         * @return parsed map object
+         */
+        fun parseULongMap(mapStr: String): Map<ULong, String> {
+            return if (mapStr.isBlank()) {
+                HashMap()
+            } else {
+                Json.decodeFromString<Map<ULong, String>>(mapStr)
             }
         }
 
@@ -110,9 +146,10 @@ data class Config(
          * @param path path to the config file
          * @return
          */
-        private fun fromFile(path: String = CONFIG_PATH): Config { // parse to object if file existed
+        private fun fromFile(path: String = configPath): Config {
+            // parse to object if file existed
             val json = readConfigFile(path)
-            return if (! json.isNullOrBlank()) {
+            return if (!json.isNullOrBlank()) {
                 fromJson(json)
             } else {
                 val config = Config()
@@ -127,8 +164,9 @@ data class Config(
          * @param path file path to read from
          * @return config object
          */
-        private fun readConfigFile(path: String = CONFIG_PATH): String? {
-            return if (File(path).exists()) { // read object from file
+        private fun readConfigFile(path: String = configPath): String? {
+            return if (File(path).exists()) {
+                // read object from file
                 File(path).readText()
             } else {
                 null
@@ -137,33 +175,77 @@ data class Config(
     }
 
     /**
+     * add an admin user
+     *
+     * @param user {@link ULong} ID of the user to add to admins list
+     * @return latest admin user list
+     */
+    fun addAdminUser(user: ULong): Set<ULong> {
+        adminUsers.add(user)
+        this.toFile()
+        return adminUsers
+    }
+
+    /**
+     * add an admin guild
+     *
+     * @param guild {@link ULong} ID of the guild to add to the admins list
+     * @return latest admin guild list
+     */
+    fun addAdminGuild(guild: ULong): Set<ULong> {
+        adminGuilds.add(guild)
+        this.toFile()
+        return adminGuilds
+    }
+
+    /**
      * add a channel that the bot is allowed to talk in
      *
      * @param channelId ID of the channel to add
+     * @return latest allowed channel list
      */
-    fun addAllowChannel(channelId: Snowflake) {
-        allowChannels.add(channelId.value)
+    fun addAllowChannel(channelId: ULong): Set<ULong> {
+        allowChannels.add(channelId)
         this.toFile()
+        return allowChannels
     }
 
     /**
      * add a user allowed to use the bot via direct message
      *
      * @param userId ID of the user to allow
+     * @return latest allowed user list
      */
-    fun addAllowUsers(userId: Snowflake) {
-        allowUsers.add(userId.value)
+    fun addAllowUsers(userId: ULong): Set<ULong> {
+        allowUsers.add(userId)
         this.toFile()
+        return allowUsers
     }
 
     /**
      * add a user who is exempt from the periodic cost limit
      *
      * @param userId ID of the user to add
+     * @return latest unlimited user list
      */
-    fun addUnlimitedUser(userId: Snowflake) {
-        unlimitedUsers.add(userId.value)
+    fun addUnlimitedUser(userId: ULong): Set<ULong> {
+        unlimitedUsers.add(userId)
         this.toFile()
+        return unlimitedUsers
+    }
+
+    /**
+     * Set a new usage limit
+     *
+     * @param cost {@link Double} max allowable cost per interval
+     * @param interval {@link Int} number of hours per interval
+     * @return updated usage string
+     */
+    fun setUsageLimit(cost: Double, interval: Int): String {
+        this.usageCostValue = cost
+        this.usageCostInterval = interval
+        this.toFile()
+        return getUsageString()
     }
 
     /**
@@ -171,14 +253,13 @@ data class Config(
      *
      * @return a formatted string representation of this Config object
      */
-    override fun toString(): String { // build response str
+    override fun toString(): String {
+        // build response str
         val formatStr = "%-20s%s"
         var response = ""
-        response += formatStr.format("Owner ID:", owner.value)
+        response += formatStr.format("Admin Users:", adminUsers)
         response += "%n".format()
         response += formatStr.format("Admin Guilds:", adminGuilds)
-        response += "%n".format()
-        response += formatStr.format("Admins:", admins)
         response += "%n".format()
         response += formatStr.format("Allow Channels:", allowChannels)
         response += "%n".format()
@@ -186,20 +267,17 @@ data class Config(
         response += "%n".format()
         response += formatStr.format("Unlimited Users:", unlimitedUsers)
         response += "%n".format()
-        response += formatStr.format("Discord Token:", botToken)
-        response += "%n".format()
-        response += formatStr.format("OpenAI Token:", openAIToken)
-        response += "%n".format()
-        response += formatStr.format("Config Path:", configPath)
-        response += "%n".format()
-        response += formatStr.format("DB Path:", dbPath)
-        response += "%n".format()
-        response += formatStr.format("Max Cost:", maxCost)
-        response += "%n".format()
-        response += formatStr.format("Cost Interval:", costInterval)
-        response += "%n".format()
-        response += formatStr.format("Clean Start:", cleanStart)
+        response += formatStr.format("Usage Limit:", getUsageString())
         return response
+    }
+
+    /**
+     * return this config object as a formatted JSON string
+     *
+     * @return formatted JSON string for this object
+     */
+    fun toJson(): String {
+        return serializer.encodeToString(this)
     }
 
     /**
@@ -207,11 +285,18 @@ data class Config(
      */
     fun toFile() {
         val configFile = File(configPath)
-        if (! configFile.exists()) {
+        if (!configFile.exists()) {
             LOG.info("config file $configPath not found... creating")
             configFile.parentFile.mkdirs()
             configFile.createNewFile()
         }
         configFile.writeText(serializer.encodeToString(this))
     }
+
+    /**
+     * get the usage config as a friendly string
+     *
+     * @return the usage string
+     */
+    private fun getUsageString(): String = "${APIUsage.formatDollarString(usageCostValue)}/$usageCostInterval hrs"
 }

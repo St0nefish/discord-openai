@@ -1,47 +1,45 @@
 package com.st0nefish.discord.openai.commands
 
+import com.st0nefish.discord.openai.utils.CommandManager
 import com.st0nefish.discord.openai.utils.OpenAIUtils
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.modify.embed
-import org.slf4j.LoggerFactory
 
 // constants
-private const val IMG_SIZE = "image-size"
+private const val IMG_SIZE = "size"
 private const val IMG_PROMPT = "prompt"
-
-// logger
-private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.registerImageCommands")
 
 /**
  * register image commands
  *
- * @param kord
- * @param openAI
+ * @param kord {@link Kord} instance to interact with Discord
+ * @param openAI {@link OpenAIUtils} instance to interact with OpenAI
  */
 suspend fun registerImageCommands(kord: Kord, openAI: OpenAIUtils = OpenAIUtils.instance()) {
-    registerGlobalChatCommand(kord, "ask-dalle", "send a prompt to Dall-E", {
-        string(IMG_SIZE, "Generated image size") {
-            required = true
-            choice("256x256", "256x256")
-            choice("512x512", "512x512")
-            choice("1024x1024", "1024x1024")
-        }
-        string(IMG_PROMPT, "the prompt to send to DALL-E") {
-            required = true
-        }
-    }, { interaction ->
-        handleImageCommand(interaction, openAI)
-    })
+    CommandManager.registerGlobalChatCommand(
+        kord,
+        "ask-dalle",
+        "send a prompt to Dall-E",
+        {
+            string(IMG_SIZE, "Generated image size") {
+                required = true
+                choice("256x256", "256x256")
+                choice("512x512", "512x512")
+                choice("1024x1024", "1024x1024")
+            }
+            string(IMG_PROMPT, "the prompt to send to DALL-E") { required = true }
+        },
+        { interaction -> handleImageCommand(interaction, openAI) })
 }
 
 /**
  * handle image command
  *
- * @param interaction
- * @param openAI
+ * @param interaction {@link ChatInputCommandInteraction} details about the current command interaction
+ * @param openAI {@link OpenAIUtils} instance to interact with OpenAI
  */
 private suspend fun handleImageCommand(interaction: ChatInputCommandInteraction, openAI: OpenAIUtils) {
     // acknowledge and defer command

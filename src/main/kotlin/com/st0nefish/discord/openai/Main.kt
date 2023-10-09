@@ -1,48 +1,54 @@
 package com.st0nefish.discord.openai
 
-import com.st0nefish.discord.openai.commands.deregisterAllCommands
 import com.st0nefish.discord.openai.commands.registerAdminCommands
 import com.st0nefish.discord.openai.commands.registerChatCommands
+import com.st0nefish.discord.openai.commands.registerGeneralCommands
 import com.st0nefish.discord.openai.commands.registerImageCommands
 import com.st0nefish.discord.openai.data.Config
+import com.st0nefish.discord.openai.utils.CommandManager
 import dev.kord.common.entity.PresenceStatus
 import dev.kord.core.Kord
 import dev.kord.gateway.Intents
 import kotlinx.coroutines.flow.toList
 import org.slf4j.LoggerFactory
 
-private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.main")
+private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.Main")
+private val discordToken = System.getenv(ENV_DISCORD_TOKEN)
+private val openAiToken = System.getenv(ENV_OPENAI_TOKEN)
 
 suspend fun main() {
     // load bot config
     val config: Config = Config.instance()
 
     // log startup
-    log.info("starting discord-openai bot using token [${config.botToken}]...")
+    println("starting discord-openai bot with name [${config.botName}]...")
+    println("using Discord token: [${discordToken}]")
+    println("using OpenAI token: [${openAiToken}]")
 
     // create kord object using token from environment variable
-    val kord = Kord(config.botToken)
+    val kord = Kord(discordToken)
 
     // if enabled ? de-register all current commands
-    if (config.cleanStart) {
-        deregisterAllCommands(kord)
+    if (System.getenv(ENV_CLEAN_START).toBoolean()) {
+        CommandManager.deregisterAllCommands(kord)
     }
 
     // register commands
     registerAdminCommands(kord)
     registerChatCommands(kord)
     registerImageCommands(kord)
+    registerGeneralCommands(kord)
 
     // print startup config
     logStartup(kord)
 
     // login and listen
     kord.login() {
-        name = "Aithena"
+        name = config.botName
         intents = Intents.nonPrivileged
         presence {
             status = PresenceStatus.Online
-            streaming("with OpenAI", "https://openai.com/")
+            streaming("with OpenAI", "https://github.com/St0nefish/discord-openai/")
         }
     }
 }
@@ -56,6 +62,9 @@ private suspend fun logStartup(kord: Kord) {
     // print startup config
     println("----------------------------------")
     println(getBanner())
+    println("----------------------------------")
+    println("Discord token: [${discordToken}]")
+    println("OpenAI token:  [${openAiToken}]")
     println("----------------------------------")
     println("Using config:")
     println(Config.instance().toString().replaceIndent("  "))

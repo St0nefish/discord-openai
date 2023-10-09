@@ -1,8 +1,6 @@
-// support for ULong
-@file:OptIn(ExperimentalUnsignedTypes::class)
-
 package com.st0nefish.discord.openai.utils
 
+import com.st0nefish.discord.openai.ENV_PATH_DB
 import com.st0nefish.discord.openai.data.APIUsage
 import com.st0nefish.discord.openai.data.ChatExchange
 import com.st0nefish.discord.openai.data.Config
@@ -25,6 +23,7 @@ import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.lang.System.getenv
 import java.sql.Connection
 import java.time.Instant
 import kotlin.time.Duration.Companion.hours
@@ -36,10 +35,14 @@ import kotlin.time.Duration.Companion.hours
  *
  * @param config the bot config object
  */
-class DatabaseUtils private constructor(config: Config = Config.instance()) {
+@OptIn(ExperimentalUnsignedTypes::class)
+class DatabaseUtils private constructor(private val config: Config = Config.instance()) {
     companion object {
         // logger
-        private val log: Logger = LoggerFactory.getLogger(this::class.java)
+        private val log: Logger = LoggerFactory.getLogger(DatabaseUtils::class.java)
+
+        // path to db file
+        private val dbPath: String = getenv(ENV_PATH_DB) ?: "./config/data.db"
 
         // singleton object
         @Volatile
@@ -55,7 +58,7 @@ class DatabaseUtils private constructor(config: Config = Config.instance()) {
             if (null == instance) {
                 this.instance = DatabaseUtils()
             }
-            return instance !!
+            return instance!!
         }
 
         /**
@@ -67,17 +70,15 @@ class DatabaseUtils private constructor(config: Config = Config.instance()) {
         fun setInstance(instance: DatabaseUtils) = instance.also { this.instance = it }
     }
 
-    // config object
-    private val config: Config
-
     /**
      * init block to connect to the database, set transaction level, and make sure our required tables exist
      */
-    init { // store db path
-        this.config = config // connect to sqlite database and configure isolation level
-        Database.connect("jdbc:sqlite:${config.dbPath}", "org.sqlite.JDBC")
-        TransactionManager.manager.defaultIsolationLevel =
-            Connection.TRANSACTION_SERIALIZABLE // make sure the required tables exist
+    init {
+        // connect to our db object
+        Database.connect("jdbc:sqlite:$dbPath", "org.sqlite.JDBC")
+        // set transaction mode
+        TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
+        // make sure the required tables exist
         transaction {
             addLogger(Slf4jSqlDebugLogger)
             SchemaUtils.create(Conversations)
@@ -238,14 +239,8 @@ class DatabaseUtils private constructor(config: Config = Config.instance()) {
             val latest = query.orderBy(Images.timestamp to SortOrder.DESC).limit(1).firstOrNull()
             if (latest?.hasValue(Images.id) == true) {
                 image = ImageExchange(
-                    latest[Images.author],
-                    latest[Images.size],
-                    latest[Images.prompt],
-                    latest[Images.url],
-                    latest[Images.success],
-                    latest[Images.cost],
-                    latest[Images.timestamp],
-                    latest[Images.imageId],
+                    latest[Images.author], latest[Images.size], latest[Images.prompt], latest[Images.url],
+                    latest[Images.success], latest[Images.cost], latest[Images.timestamp], latest[Images.imageId],
                     latest[Images.id].value)
             }
         }
@@ -285,9 +280,7 @@ class DatabaseUtils private constructor(config: Config = Config.instance()) {
         transaction {
             addLogger(Slf4jSqlDebugLogger) // build queries
             val chatQuery = Conversations.slice(
-                Conversations.requestTokens.sum(),
-                Conversations.responseTokens.sum(),
-                Conversations.totalTokens.sum(),
+                Conversations.requestTokens.sum(), Conversations.responseTokens.sum(), Conversations.totalTokens.sum(),
                 Conversations.cost.sum()).selectAll()
             val imgQuery = Images.slice(Images.id.count(), Images.cost.sum()).selectAll()
 
@@ -330,31 +323,28 @@ class DatabaseUtils private constructor(config: Config = Config.instance()) {
      * @return Boolean - can they make another request
      */
     fun canMakeRequest(user: User): Boolean {
-        return if (user.id.value == config.owner.value) {
-            // user is bot owner
-            log.info("${user.tag} is bot owner - allowing request")
-            true
-        } else if (config.unlimitedUsers.contains(user.id.value)) {
-            // user is in unlimited list
-            log.info("${user.tag} is in unlimited list - allowing request")
-            true
-        } else {
-            return if (getTimedCost(user.id.value) < config.maxCost) {
-                // user has not exceeded daily limit
-                log.info(
-                    "${user.tag} has used ${
-                        formatDollarString(getTimedCost(user.id.value))
-                    } out of daily limit ${
-                        formatDollarString(config.maxCost)
-                    }")
+        return when {
+            // admin users always allowed
+            AccessManager.isAdminUser(user.id.value) -> {
+                log.info("${user.tag} is bot owner - allowing request")
                 true
-            } else { // user has exceeded daily limit
-                log.info(
-                    "user ${user.tag} has exceeded daily limit of ${
-                        formatDollarString(config.maxCost)
-                    }\n```\n${
-                        getUsageString(user, config, getAPIUsage(user.id.value), getAPIUsage(user.id.value, true))
-                    }\n```")
+            }
+
+            // if user is in unlimited use list allow
+            AccessManager.isUnlimitedUser(user.id.value) -> {
+                log.info("${user.tag} is in unlimited list - allowing request")
+                true
+            }
+
+            // if user has not violated usage limit allow
+            getTimedCost(user.id.value) < config.usageCostValue -> {
+                log.info("user ${user.tag} has not yet exceeded timed usage cap - allowing request")
+                true
+            }
+
+            // all other cases reject
+            else -> {
+                log.info("user ${user.tag} has exceeded daily usage limit - denying request")
                 false
             }
         }
@@ -376,6 +366,6 @@ class DatabaseUtils private constructor(config: Config = Config.instance()) {
      * @return an Instant object representing the earliest cutoff time in our tracked window
      */
     private fun getOffsetTime(): Instant {
-        return Instant.now().minusSeconds(config.costInterval.hours.inWholeSeconds)
+        return Instant.now().minusSeconds(config.usageCostInterval.hours.inWholeSeconds)
     }
 }
