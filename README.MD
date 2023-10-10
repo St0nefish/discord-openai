@@ -79,7 +79,7 @@ These settings are consumed on boot, but are optional and have functional defaul
 |:-------------------------|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------|
 | DISCORD_GPT_PATH_CONFIG  | `./config/config.json` | Path to the configuration file                                                                                                                      |
 | DISCORD_GPT_PATH_DB      | `./config/data.db`     | Path to the database file                                                                                                                           |
-| DISCORD_GPT_BOT_OWNER    |                        | Snowflake ID for the primary admin user. If not set the bot will work, but some admin commands will not                                             |
+| DISCORD_GPT_ADMIN_USERS  |                        | Comma-separated list of Snowflake IDs for users with admin permissions. If none are specified then no users will be able to use the admin commands. |
 | DISCORD_GPT_ADMIN_GUILDS |                        | Comma-separated list of Snowflake IDs for guilds in which to register admin commands. If none are specified then the admin commands cannot be used. |
 
 #### Default Values
@@ -90,7 +90,6 @@ commands registered in the configured admin guild(s).
 
 | Variable                       | Purpose                                                                                                                                                           |
 |:-------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DISCORD_GPT_ADMIN_USERS        | Comma-separated list of Snowflake IDs for users with admin permissions                                                                                            |
 | DISCORD_GPT_ALLOW_CHANNELS     | Comma-separated list of Snowflake IDs for channels the bot is allowed to operate within. If left empty then the bot will operate in all channels it is present in |
 | DISCORD_GPT_ALLOW_USERS        | Comma-separated list of Snowflake IDs for users the bot is allowed to PM with. If left empty all users can PM with this bot                                       |
 | DISCORD_GPT_COST_MAX_USER      | Maximum usage cost (in dollars) for each user per configured time period. Defaults to $0.50                                                                       |
