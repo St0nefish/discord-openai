@@ -39,10 +39,10 @@ services:
     volumes:
       - "./config:/app/discord-openai/config:rw"
     environment:
-      - "DISCORD_GPT_BOT_TOKEN={DISCORD_BOT_TOKEN}"     # required
-      - "DISCORD_GPT_BOT_OWNER={DISCORD_ADMIN_USER_ID}" # required
-      - "DISCORD_GPT_OPENAI_TOKEN={OPENAI_AUTH_TOKEN}"  # required
-      - "DISCORD_GPT_ADMIN_GUILDS={ADMIN_GUILD_ID_CSV}" # optional
+      - "DISCORD_GPT_BOT_TOKEN=<DISCORD_BOT_TOKEN>"     # required
+      - "DISCORD_GPT_OPENAI_TOKEN=<OPENAI_AUTH_TOKEN>"  # required
+      - "DISCORD_GPT_ADMIN_GUILDS=<ADMIN_GUILD_ID_CSV>" # optional
+      - "DISCORD_GPT_ADMIN_USERS=<ADMIN_USER_ID_CSV>"   # optional
   healthcheck:
     disable: true
   security_opt:
@@ -79,8 +79,8 @@ These settings are consumed on boot, but are optional and have functional defaul
 |:-------------------------|:-----------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------|
 | DISCORD_GPT_PATH_CONFIG  | `./config/config.json` | Path to the configuration file                                                                                                                      |
 | DISCORD_GPT_PATH_DB      | `./config/data.db`     | Path to the database file                                                                                                                           |
-| DISCORD_GPT_ADMIN_USERS  |                        | Comma-separated list of Snowflake IDs for users with admin permissions. If none are specified then no users will be able to use the admin commands. |
 | DISCORD_GPT_ADMIN_GUILDS |                        | Comma-separated list of Snowflake IDs for guilds in which to register admin commands. If none are specified then the admin commands cannot be used. |
+| DISCORD_GPT_ADMIN_USERS  |                        | Comma-separated list of Snowflake IDs for users with admin permissions. If none are specified then no users will be able to use the admin commands. |
 
 #### Default Values
 
