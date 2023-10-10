@@ -27,6 +27,9 @@ private const val startupBanner = """
        |_|                                                                     
 """
 
+// separator for startup log blocks
+private const val startupSeparator = "-------------------------------------"
+
 // mandatory authentication tokens
 private val discordToken = System.getenv(ENV_DISCORD_TOKEN)
 private val openAiToken = System.getenv(ENV_OPENAI_TOKEN)
@@ -68,17 +71,18 @@ suspend fun main() {
     registerAdminCommands(kord)
 
     // print startup config
+    println(startupSeparator)
     println(startupBanner)
-    println("----------------------------------")
+    println(startupSeparator)
     println("Discord token: [${discordToken}]")
     println("OpenAI token:  [${openAiToken}]")
-    println("----------------------------------")
+    println(startupSeparator)
     println("Using config:")
     println(Config.instance().toString().replaceIndent("  "))
-    println("----------------------------------")
+    println(startupSeparator)
     println("Registered in guilds:")
-    kord.guilds.toList().forEach { println(it.name.replaceIndent("  ")) }
-    println("----------------------------------")
+    println(kord.guilds.toList().joinToString("\n") { it.name.replaceIndent("  ") })
+    println(startupSeparator)
 
     // login and listen
     kord.login() {
