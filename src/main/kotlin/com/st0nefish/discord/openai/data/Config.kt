@@ -119,20 +119,6 @@ data class Config(
         }
 
         /**
-         * parse a string representation of a map to return the map value
-         *
-         * @param mapStr {@link String} text version of the map
-         * @return parsed map object
-         */
-        fun parseULongMap(mapStr: String): Map<ULong, String> {
-            return if (mapStr.isBlank()) {
-                HashMap()
-            } else {
-                Json.decodeFromString<Map<ULong, String>>(mapStr)
-            }
-        }
-
-        /**
          * parse a config object from the input json string
          *
          * @param json string to parse

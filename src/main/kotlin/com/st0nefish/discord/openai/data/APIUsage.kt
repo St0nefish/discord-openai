@@ -11,8 +11,9 @@ data class APIUsage(
     var dalleImages: Int = 0,
     var dalleCost: Double = 0.0,
     var totalCost: Double = 0.0,
-    var user: ULong = "0".toULong(),
+    var user: ULong = ULong.MIN_VALUE,
     private var timestamp: Instant = Instant.now()) {
+    /** static companion object */
     companion object {
         /**
          * get a formatted cost string
