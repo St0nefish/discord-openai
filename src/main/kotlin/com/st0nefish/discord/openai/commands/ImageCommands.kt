@@ -8,8 +8,6 @@ import dev.kord.core.behavior.interaction.response.DeferredPublicMessageInteract
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.User
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
-import dev.kord.rest.builder.interaction.integer
-import dev.kord.rest.builder.interaction.number
 import dev.kord.rest.builder.interaction.string
 import dev.kord.rest.builder.message.embed
 
@@ -43,26 +41,26 @@ suspend fun registerImageCommands(kord: Kord, openAI: OpenAIUtils = OpenAIUtils.
             string(IMG_PROMPT, "the prompt to send to DALL-E") { required = true }
             string(IMG_MODEL, "Version of DALL-E to use") {
                 required = false
-                choice("dall-e-3", "DALL-E 3")
-                choice("dall-e-2", "DALL-E 2")
+                choice("DALL-E 3", "dall-e-3")
+                choice("DALL-E 2", "dall-e-2")
             }
             string(IMG_QUALITY, "Quality of image") {
                 required = false
-                choice("standard", "Standard")
-                choice("hd", "HD (more expensive)")
+                choice("Standard", "standard")
+                choice("HD", "hd")
             }
             string(IMG_STYLE, "Style to use") {
                 required = false
-                choice("natural", "Natural - \"hyper-real and dramatic images\"")
-                choice("vivid", "Vivid \"more natural, less hyper-real looking images\"")
+                choice("Natural - more natural, less hyper-real looking images", "natural")
+                choice("Vivid - hyper-real and dramatic images", "vivid")
             }
             string(IMG_SIZE, "Generated image size") {
                 required = false
-                choice("256x256", "256x256 (only v2)")
-                choice("512x512", "512x512 (only v2)")
-                choice("1024x1024", "1024x1024")
-                choice("1024×1792", "1024×1792 (only v3)")
-                choice("1792x1024", "1792x1024 (only v3)")
+                choice("256x256 (only v2)", "256x256")
+                choice("512x512 (only v2)", "512x512")
+                choice("1024x1024 (v2 or v3)", "1024x1024")
+                choice("1024×1792 (only v3)", "1024×1792")
+                choice("1792x1024 (only v3)", "1792x1024")
             }
         },
         { interaction -> handleImageCommand(interaction, openAI) })
@@ -89,6 +87,11 @@ private suspend fun handleImageCommand(interaction: ChatInputCommandInteraction,
     val imageResponse: ImageExchange = openAI.createImage(author, prompt, model, size, quality, style)
     // handle response
     if (imageResponse.success) {
+        // generate details
+        var details: String = "model: $model, size: $size"
+        if (model == "dall-e-3") {
+            details += ", quality: $quality, style: $style"
+        }
         response.respond {
             embed {
                 title = prompt
@@ -97,22 +100,8 @@ private suspend fun handleImageCommand(interaction: ChatInputCommandInteraction,
                     value = author.mention
                 }
                 field {
-                    name = "model"
-                    value = model
-                }
-                if (model == "dall-e-3") {
-                    field {
-                        name = "quality"
-                        value = quality
-                    }
-                    field {
-                        name = "style"
-                        value = style
-                    }
-                }
-                field {
-                    name = "size"
-                    value = size
+                    name = "details"
+                    value = "model: $model, ${details}size: $size"
                 }
                 image = imageResponse.url
             }

@@ -1,7 +1,8 @@
 import org.apache.tools.ant.filters.ReplaceTokens
+import org.jetbrains.kotlin.org.apache.commons.io.output.ByteArrayOutputStream
 
 group = "com.st0nefish"
-version = "0.1.8"
+version = "0.1.9"
 description = "a discord bot for communicating with OpenAI"
 
 plugins {
@@ -73,6 +74,8 @@ tasks.register<Copy>("dockerCopyLogger") {
 tasks.register<Copy>("generateDockerfile") {
     description = "generate dockerfile in docker build directory"
     group = "docker"
+    // always re-run
+    outputs.upToDateWhen { false }
     // gradle properties
     val dockerBaseImg: String by project
     val dockerImgVersion: String = project.version.toString()
@@ -91,8 +94,11 @@ tasks.register<Exec>("buildDockerImage") {
     description = "build the docker image"
     group = "docker"
     dependsOn("dockerCopyDist", "dockerCopyLogger", "generateDockerfile")
-    // build docker image
+    // force to always run
+    outputs.upToDateWhen { false }
+    // set working directory to where our docker config is
     workingDir(layout.buildDirectory.dir("docker"))
+    // execute build command
     commandLine(
         "docker",
         "build",
@@ -117,10 +123,10 @@ tasks.register<Exec>("pushDockerImage") {
 tasks.register<Exec>("pushDockerImageLatest") {
     description = "push the latest docker image"
     group = "docker"
-    dependsOn("pushDockerImage")
+    dependsOn("buildDockerImage")
     // set working directory to the one with the generated image
     workingDir(layout.buildDirectory.dir("docker"))
-    // push with latest tag
+    // push docker image with version tag
     commandLine("docker", "push", "st0nefish/${project.name}:latest")
 }
 

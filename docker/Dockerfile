@@ -6,9 +6,6 @@ LABEL authors="st0nefish" \
       version="@project_version@" \
       description="Discord bot to utilize OpenAI"
 
-# create app directory
-#RUN mkdir /app
-
 # extract our latest distribution to /tmp
 ADD discord-openai-@project_version@.tar /tmp
 

@@ -79,8 +79,8 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         // make sure the required tables exist
         transaction {
             addLogger(Slf4jSqlDebugLogger)
-            SchemaUtils.create(Conversations)
-            SchemaUtils.create(Images)
+            // ensure schema is up to date
+            SchemaUtils.createMissingTablesAndColumns(Conversations, Images)
         }
     }
 
@@ -95,7 +95,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         var conversationId = uuid(name = "conversation_id").index()
         var timestamp = timestamp(name = "timestamp").index()
         var success = bool(name = "success")
-        var model = text(name = "model", eagerLoading = true)
+        var model = text(name = "model", eagerLoading = true).nullable()
         var prompt = text(name = "prompt", eagerLoading = true)
         var response = text(name = "response", eagerLoading = true)
         var requestTokens = integer("request_tokens")
@@ -118,6 +118,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
                 it[timestamp] = chat.timestamp
                 it[success] = chat.success
                 it[prompt] = chat.prompt
+                it[model] = chat.model
                 it[response] = chat.response
                 it[requestTokens] = chat.requestTokens
                 it[responseTokens] = chat.responseTokens

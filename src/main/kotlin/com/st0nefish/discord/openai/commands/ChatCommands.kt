@@ -41,7 +41,7 @@ suspend fun registerChatCommands(
     // register ask-gpt-model command
     CommandManager.registerGlobalChatCommand(
         kord,
-        "ask-gpt-model",
+        "ask-gpt-advanced",
         "send a prompt to a specific GPT model",
         {
             string(INPUT_MODEL, "GPT model to use") {
