@@ -21,16 +21,10 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:${Versions.SLF4J}")
     // kord for discord api wrapper
     implementation("dev.kord:kord-core:${Versions.KORD}")
-    // openai api wrapper
-//    implementation("com.aallam.openai:openai-client:${Versions.OPENAI}")
-//    implementation("io.ktor:ktor-client-java:${Versions.KTOR}")
-//    implementation("io.ktor:ktor-client-content-negotiation${Versions.KTOR}")
+    // openai api wrapper - requires okhttp
     implementation(platform("com.aallam.openai:openai-client-bom:${Versions.OPENAI}"))
     implementation("com.aallam.openai:openai-client")
     runtimeOnly("io.ktor:ktor-client-okhttp")
-    // openai api needs okhttp
-    //runtimeOnly("io.ktor:ktor-client-okhttp")
-    // jetbrains database api
     implementation("org.jetbrains.exposed:exposed-core:${Versions.EXPOSED}")
     implementation("org.jetbrains.exposed:exposed-dao:${Versions.EXPOSED}")
     implementation("org.jetbrains.exposed:exposed-jdbc:${Versions.EXPOSED}")

@@ -1,6 +1,6 @@
 object Versions {
     // jvm compile target
-    const val JAVA = "17"
+    const val JAVA = "21"
 
     // kotlin version
     const val KOTLIN = "2.1.0"
