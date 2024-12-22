@@ -1,7 +1,7 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 group = "com.st0nefish"
-version = "0.1.6"
+version = "0.1.7"
 description = "a discord bot for communicating with OpenAI"
 
 plugins {
