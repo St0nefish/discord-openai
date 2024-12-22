@@ -9,6 +9,7 @@ import com.st0nefish.discord.openai.utils.CommandManager
 import dev.kord.common.entity.PresenceStatus
 import dev.kord.core.Kord
 import dev.kord.gateway.Intents
+import dev.kord.gateway.NON_PRIVILEGED
 import kotlinx.coroutines.flow.toList
 
 // startup banner output to the logs
@@ -46,30 +47,24 @@ suspend fun main() {
     if (openAiToken.isNullOrBlank()) {
         throw NullPointerException("$ENV_OPENAI_TOKEN is required for running this bot")
     }
-
     // load bot config
     val config: Config = Config.instance()
-
     // log startup
     println("starting discord-openai bot...")
     println("Bot Name:      ${config.botName}")
     println("Discord Token: $discordToken")
     println("OpenAI Token:  $openAiToken")
-
     // create kord object using the configured Discord token
     val kord = Kord(discordToken)
-
     // if enabled ? de-register all current commands
     if (System.getenv(ENV_CLEAN_START).toBoolean()) {
         CommandManager.deregisterAllCommands(kord)
     }
-
     // register commands
     registerGeneralCommands(kord)
     registerChatCommands(kord)
     registerImageCommands(kord)
     registerAdminCommands(kord)
-
     // print startup config
     println(startupSeparator)
     println(startupBanner)
@@ -83,11 +78,10 @@ suspend fun main() {
     println("Registered in guilds:")
     println(kord.guilds.toList().joinToString("\n") { it.name.replaceIndent("  ") })
     println(startupSeparator)
-
     // login and listen
     kord.login() {
         name = config.botName
-        intents = Intents.nonPrivileged
+        intents = Intents.NON_PRIVILEGED
         presence {
             status = PresenceStatus.Online
             streaming("with OpenAI", "https://github.com/St0nefish/discord-openai/")

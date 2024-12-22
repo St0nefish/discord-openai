@@ -16,7 +16,6 @@ import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.count
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.javatime.timestamp
-import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.sum
 import org.jetbrains.exposed.sql.transactions.TransactionManager
@@ -140,7 +139,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         transaction {
             addLogger(Slf4jSqlDebugLogger)
             val query = if (author != null) {
-                Conversations.select { Conversations.author eq author }
+                Conversations.selectAll().where { Conversations.author eq author }
             } else {
                 Conversations.selectAll()
             }
@@ -174,7 +173,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         var cost = 0.0
         transaction {
             addLogger(Slf4jSqlDebugLogger)
-            val query = Conversations.slice(Conversations.cost.sum()).selectAll()
+            val query = Conversations.select(Conversations.cost.sum())
             user?.let {
                 query.andWhere { Conversations.author eq user }
             }
@@ -232,7 +231,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         transaction {
             addLogger(Slf4jSqlDebugLogger)
             val query = if (author != null) {
-                Images.select { Images.author eq author }
+                Images.selectAll().where { Images.author eq author }
             } else {
                 Images.selectAll()
             }
@@ -241,7 +240,8 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
                 image = ImageExchange(
                     latest[Images.author], latest[Images.size], latest[Images.prompt], latest[Images.url],
                     latest[Images.success], latest[Images.cost], latest[Images.timestamp], latest[Images.imageId],
-                    latest[Images.id].value)
+                    latest[Images.id].value
+                )
             }
         }
         return image
@@ -257,7 +257,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         var cost = 0.0
         transaction {
             addLogger(Slf4jSqlDebugLogger)
-            val query = Images.slice(Images.cost.sum()).selectAll()
+            val query = Images.select(Images.cost.sum())
             user?.let {
                 query.andWhere { Images.author eq user }
             }
@@ -279,10 +279,11 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         val usage = APIUsage()
         transaction {
             addLogger(Slf4jSqlDebugLogger) // build queries
-            val chatQuery = Conversations.slice(
+            val chatQuery = Conversations.select(
                 Conversations.requestTokens.sum(), Conversations.responseTokens.sum(), Conversations.totalTokens.sum(),
-                Conversations.cost.sum()).selectAll()
-            val imgQuery = Images.slice(Images.id.count(), Images.cost.sum()).selectAll()
+                Conversations.cost.sum()
+            )
+            val imgQuery = Images.select(Images.id.count(), Images.cost.sum())
 
             // if user is passed add filter
             user?.let {

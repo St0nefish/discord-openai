@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 
 class CommandManager {
     companion object {
-        private val log = LoggerFactory.getLogger("com.st0nefish.discord.openai.commands.CommandManager")
+        private val log = LoggerFactory.getLogger(this::class.java)
 
         /**
          * Register a global command
@@ -67,7 +67,8 @@ class CommandManager {
             description: String,
             command: ChatInputCreateBuilder.() -> Unit = {},
             action: suspend (interaction: ChatInputCommandInteraction) -> Unit = {},
-            config: Config = Config.instance()) {
+            config: Config = Config.instance()
+        ) {
 
             for (guildId in config.adminGuilds) {
                 log.info("registering admin command [$name] in guild [$guildId]")
@@ -87,8 +88,17 @@ class CommandManager {
             }
         }
 
+        /**
+         * Registers a global user menu command and handles interactions for the registered command.
+         *
+         * @param kord The Kord instance used to interact with the Discord API.
+         * @param name The name of the global user menu command to register.
+         * @param action A suspendable lambda to be executed when the command is invoked.
+         *               The lambda receives a `UserCommandInteraction` instance as its parameter.
+         */
         suspend fun registerUserMenuCommand(
-            kord: Kord, name: String, action: suspend (interaction: UserCommandInteraction) -> Unit = {}) {
+            kord: Kord, name: String, action: suspend (interaction: UserCommandInteraction) -> Unit = {}
+        ) {
             kord.createGlobalUserCommand(name) {
                 log.info("registered global user menu command $name")
             }
@@ -123,16 +133,6 @@ class CommandManager {
                 kord.rest.interaction.deleteGlobalApplicationCommand(applicationId, globalCommand.id)
             }
 
-            // deregister guild commands for all guilds
-//            val guildCommands = kord.guilds.toList()
-//                .flatMap { guild -> kord.rest.interaction.getGuildApplicationCommands(applicationId, guild.id) }
-//                .toList()
-//            log.info("de-registering ${guildCommands.size} guild commands...")
-//            guildCommands.forEach { command ->
-//                log.info("de-registering guild [${command.guildId.value?.value}] command [${command.name}]")
-//                kord.rest.interaction.deleteGuildApplicationCommand(applicationId, command.guildId.value !!, command.id)
-//            }
-
             // de-register guild commands
             kord.guilds.toList().forEach { guild ->
                 // get list of commands registered in this guild
@@ -141,7 +141,8 @@ class CommandManager {
                 guildCommands.forEach { command ->
                     log.info("de-registering guild command [${command.name}] from guild [${guild.data.name}]")
                     kord.rest.interaction.deleteGuildApplicationCommand(
-                        applicationId, command.guildId.value !!, command.id)
+                        applicationId, command.guildId.value!!, command.id
+                    )
                 }
             }
         }

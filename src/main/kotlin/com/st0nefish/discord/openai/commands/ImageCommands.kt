@@ -6,7 +6,7 @@ import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.response.respond
 import dev.kord.core.entity.interaction.ChatInputCommandInteraction
 import dev.kord.rest.builder.interaction.string
-import dev.kord.rest.builder.message.modify.embed
+import dev.kord.rest.builder.message.embed
 
 // constants
 private const val IMG_SIZE = "size"

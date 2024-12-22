@@ -1,6 +1,5 @@
 package com.st0nefish.discord.openai.utils
 
-import com.aallam.openai.api.BetaOpenAI
 import com.aallam.openai.api.chat.ChatCompletion
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
@@ -9,9 +8,9 @@ import com.aallam.openai.api.image.ImageCreation
 import com.aallam.openai.api.image.ImageSize
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
+import com.st0nefish.discord.openai.ENV_OPENAI_TOKEN
 import com.st0nefish.discord.openai.data.ChatExchange
 import com.st0nefish.discord.openai.data.Config
-import com.st0nefish.discord.openai.ENV_OPENAI_TOKEN
 import com.st0nefish.discord.openai.data.ImageExchange
 import dev.kord.core.entity.User
 import org.slf4j.LoggerFactory
@@ -23,12 +22,11 @@ import org.slf4j.LoggerFactory
  *
  * @param config bot config object
  */
-@OptIn(BetaOpenAI::class)
 class OpenAIUtils private constructor(
     private val config: Config = Config.instance(),
     private val database: DatabaseUtils = DatabaseUtils.instance(),
-    openaiToken: String = System.getenv(ENV_OPENAI_TOKEN) !!) {
-
+    openaiToken: String = System.getenv(ENV_OPENAI_TOKEN)!!
+) {
     companion object {
         // constants
         private const val TEXT_TOKEN_COST = 0.002 / 1000
@@ -52,7 +50,7 @@ class OpenAIUtils private constructor(
             if (null == instance) {
                 this.instance = OpenAIUtils()
             }
-            return instance !!
+            return instance!!
         }
 
         /**
@@ -65,7 +63,7 @@ class OpenAIUtils private constructor(
     }
 
     // logger
-    private val log = LoggerFactory.getLogger(OpenAIUtils::class.java)
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     // openAI API
     private val openAI: OpenAI = OpenAI(openaiToken)
@@ -77,9 +75,8 @@ class OpenAIUtils private constructor(
      * @param prompt String chat completion prompt
      * @return response from ChatGPT
      */
-    suspend fun getChatResponse(user: User, prompt: String): ChatExchange { // log question
+    suspend fun getChatResponse(user: User, prompt: String, model: String): ChatExchange { // log question
         log.info("${user.tag} asked: $prompt") // create exchange object for return
-
         // create chat exchange
         val exchange = ChatExchange(user.id.value, prompt) // check if user can make a request
         if (database.canMakeRequest(user)) { // execute request
@@ -87,18 +84,22 @@ class OpenAIUtils private constructor(
             try {
                 completion = openAI.chatCompletion(
                     ChatCompletionRequest(
-                        model = ModelId("gpt-3.5-turbo"), messages = listOf(
-                            ChatMessage(
-                                role = ChatRole.User, content = prompt)))) // store successful result
+                        model = ModelId(model), messages = listOf(
+                            ChatMessage(role = ChatRole.User, content = prompt)
+                        )
+                    )
+                ) // store successful result
                 exchange.success = true
-                exchange.response = completion.choices.first().message?.content?.trim() ?: "GPT returned no response"
+                exchange.response = completion.choices.first().message.content?.trim() ?: "GPT returned no response"
                 exchange.requestTokens = completion.usage?.promptTokens ?: 0
                 exchange.responseTokens = completion.usage?.completionTokens ?: 0
                 exchange.totalTokens = completion.usage?.totalTokens ?: 0
                 exchange.cost = getChatCost(exchange.totalTokens) // log response
                 log.info(
                     "GPT response:%nAuthor: %s%nPrompt: %s%nResponse: %s".format(
-                        user.tag, prompt, exchange.response.trim()))
+                        user.tag, prompt, exchange.response.trim()
+                    )
+                )
             } catch (e: Exception) { // handle exception
                 exchange.success = false
                 exchange.response = e.stackTraceToString()
@@ -133,19 +134,24 @@ class OpenAIUtils private constructor(
         if (database.canMakeRequest(user)) {
             try { // send request to DALL·E
                 val images = openAI.imageURL(
-                    creation = ImageCreation(n = 1, size = ImageSize(size), prompt = prompt))
+                    creation = ImageCreation(n = 1, size = ImageSize(size), prompt = prompt)
+                )
                 image.success = true
                 image.url = images.first().url
                 image.cost = getImageCost(size)
                 log.info(
                     "%s generated %s image via DALL·E%nPrompt: %s%nURL: %s".format(
-                        user.tag, size, prompt, image.url))
+                        user.tag, size, prompt, image.url
+                    )
+                )
             } catch (e: Exception) { // catch failure
                 image.success = false
                 image.url = e.stackTraceToString()
                 log.error(
                     "exception getting image from DALL·E%nAuthor: %s:%nPrompt:%s%nException:%n%s".format(
-                        user.tag, prompt, e.stackTraceToString()))
+                        user.tag, prompt, e.stackTraceToString()
+                    )
+                )
             }
         } else { // handle case where user has violated cap
             image.success = false

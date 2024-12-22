@@ -22,7 +22,14 @@ dependencies {
     // kord for discord api wrapper
     implementation("dev.kord:kord-core:${Versions.KORD}")
     // openai api wrapper
-    implementation("com.aallam.openai:openai-client:${Versions.OPENAI}")
+//    implementation("com.aallam.openai:openai-client:${Versions.OPENAI}")
+//    implementation("io.ktor:ktor-client-java:${Versions.KTOR}")
+//    implementation("io.ktor:ktor-client-content-negotiation${Versions.KTOR}")
+    implementation(platform("com.aallam.openai:openai-client-bom:${Versions.OPENAI}"))
+    implementation("com.aallam.openai:openai-client")
+    runtimeOnly("io.ktor:ktor-client-okhttp")
+    // openai api needs okhttp
+    //runtimeOnly("io.ktor:ktor-client-okhttp")
     // jetbrains database api
     implementation("org.jetbrains.exposed:exposed-core:${Versions.EXPOSED}")
     implementation("org.jetbrains.exposed:exposed-dao:${Versions.EXPOSED}")
@@ -36,12 +43,14 @@ application {
     mainClass.set("com.st0nefish.discord.openai.MainKt")
 }
 
-tasks.test {
-    useJUnitPlatform()
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(Versions.JAVA))
+    }
 }
 
-tasks.compileKotlin {
-    kotlinOptions.jvmTarget = Versions.JAVA
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.compileJava {
@@ -81,7 +90,9 @@ tasks.register<Copy>("generateDockerfile") {
     into(layout.buildDirectory.dir("docker"))
     filter(
         ReplaceTokens::class, "tokens" to mapOf(
-            "docker_base_image" to dockerBaseImg, "project_version" to dockerImgVersion))
+            "docker_base_image" to dockerBaseImg, "project_version" to dockerImgVersion
+        )
+    )
 }
 
 tasks.register<Exec>("buildDockerImage") {
@@ -98,7 +109,8 @@ tasks.register<Exec>("buildDockerImage") {
         "st0nefish/${project.name}:${project.version}",
         "-t",
         "st0nefish/${project.name}:latest",
-        ".")
+        "."
+    )
 }
 
 tasks.register<Exec>("pushDockerImage") {
@@ -116,7 +128,8 @@ val fatJar = task<Jar>("fatJar") {
     description = "create an executable jar with all dependencies"
     group = "build"
     dependsOn.addAll(
-        listOf("compileJava", "compileKotlin", "processResources"))
+        listOf("compileJava", "compileKotlin", "processResources")
+    )
     archiveClassifier.set("standalone")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {

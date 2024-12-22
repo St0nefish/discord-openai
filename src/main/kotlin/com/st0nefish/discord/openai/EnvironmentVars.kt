@@ -2,7 +2,7 @@ package com.st0nefish.discord.openai
 
 const val ENV_PATH_CONFIG: String = "DISCORD_GPT_PATH_CONFIG"
 const val ENV_PATH_DB: String = "DISCORD_GPT_PATH_DB"
-const val ENV_DISCORD_TOKEN: String = "DISCORD_GPT_BOT_TOKEN"
+const val ENV_DISCORD_TOKEN: String = "DISCORD_GPT_DISCORD_TOKEN"
 const val ENV_BOT_NAME: String = "DISCORD_GPT_BOT_NAME"
 const val ENV_ADMIN_USERS: String = "DISCORD_GPT_ADMIN_USERS"
 const val ENV_ADMIN_GUILDS: String = "DISCORD_GPT_ADMIN_GUILDS"
