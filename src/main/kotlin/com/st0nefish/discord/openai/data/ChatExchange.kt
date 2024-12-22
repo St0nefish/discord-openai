@@ -6,6 +6,7 @@ import java.util.*
 
 data class ChatExchange(
     val author: ULong,
+    val model: String?,
     val prompt: String,
     var response: String = "",
     var success: Boolean = true,

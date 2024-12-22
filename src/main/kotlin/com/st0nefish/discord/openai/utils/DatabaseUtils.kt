@@ -34,7 +34,6 @@ import kotlin.time.Duration.Companion.hours
  *
  * @param config the bot config object
  */
-@OptIn(ExperimentalUnsignedTypes::class)
 class DatabaseUtils private constructor(private val config: Config = Config.instance()) {
     companion object {
         // logger
@@ -96,6 +95,7 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         var conversationId = uuid(name = "conversation_id").index()
         var timestamp = timestamp(name = "timestamp").index()
         var success = bool(name = "success")
+        var model = text(name = "model", eagerLoading = true)
         var prompt = text(name = "prompt", eagerLoading = true)
         var response = text(name = "response", eagerLoading = true)
         var requestTokens = integer("request_tokens")
@@ -146,17 +146,18 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
             val latest = query.orderBy(Conversations.timestamp to SortOrder.DESC).limit(1).firstOrNull()
             if (latest?.hasValue(Conversations.id) == true) {
                 exchange = ChatExchange(
-                    latest[Conversations.author],
-                    latest[Conversations.prompt],
-                    latest[Conversations.response],
-                    latest[Conversations.success],
-                    latest[Conversations.requestTokens],
-                    latest[Conversations.responseTokens],
-                    latest[Conversations.totalTokens],
-                    latest[Conversations.cost],
-                    latest[Conversations.timestamp],
-                    latest[Conversations.conversationId],
-                    latest[Conversations.id].value,
+                    author = latest[Conversations.author],
+                    model = latest[Conversations.model],
+                    prompt = latest[Conversations.prompt],
+                    response = latest[Conversations.response],
+                    success = latest[Conversations.success],
+                    requestTokens = latest[Conversations.requestTokens],
+                    responseTokens = latest[Conversations.responseTokens],
+                    totalTokens = latest[Conversations.totalTokens],
+                    cost = latest[Conversations.cost],
+                    timestamp = latest[Conversations.timestamp],
+                    conversationId = latest[Conversations.conversationId],
+                    rowId = latest[Conversations.id].value,
                 )
             }
         }
@@ -189,14 +190,18 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
      * @constructor Create empty Images object defining columns and types
      */
     object Images : IntIdTable(name = "dalle_images", columnName = "id") {
-        var author = ulong(name = "author").index()
         var imageId = uuid(name = "image_id")
+        var author = ulong(name = "author").index()
         var timestamp = timestamp(name = "timestamp").index()
         var success = bool(name = "success")
         var prompt = text(name = "prompt", eagerLoading = true)
+        var model = text(name = "model", eagerLoading = true).nullable()
+        var quality = text(name = "quality", eagerLoading = true).nullable()
+        var style = text(name = "style", eagerLoading = true).nullable()
         var size = varchar(name = "size", 16)
         var url = text(name = "url", eagerLoading = true)
         var cost = double(name = "cost")
+        var exception = text(name = "exception", eagerLoading = true).nullable()
     }
 
     /**
@@ -208,14 +213,18 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
         transaction {
             addLogger(Slf4jSqlDebugLogger)
             Images.insert {
+                it[imageId] = image.imageId
                 it[author] = image.author
+                it[timestamp] = image.timestamp
+                it[success] = image.success
                 it[prompt] = image.prompt
+                it[model] = image.model
+                it[quality] = image.quality
+                it[style] = image.style
                 it[size] = image.size
                 it[url] = image.url
-                it[success] = image.success
                 it[cost] = image.cost
-                it[timestamp] = image.timestamp
-                it[imageId] = image.imageId
+                it[exception] = image.exception
             }
         }
     }
@@ -238,9 +247,19 @@ class DatabaseUtils private constructor(private val config: Config = Config.inst
             val latest = query.orderBy(Images.timestamp to SortOrder.DESC).limit(1).firstOrNull()
             if (latest?.hasValue(Images.id) == true) {
                 image = ImageExchange(
-                    latest[Images.author], latest[Images.size], latest[Images.prompt], latest[Images.url],
-                    latest[Images.success], latest[Images.cost], latest[Images.timestamp], latest[Images.imageId],
-                    latest[Images.id].value
+                    author = latest[Images.author],
+                    prompt = latest[Images.prompt],
+                    model = latest[Images.model],
+                    quality = latest[Images.quality],
+                    style = latest[Images.style],
+                    size = latest[Images.size],
+                    url = latest[Images.url],
+                    success = latest[Images.success],
+                    cost = latest[Images.cost],
+                    timestamp = latest[Images.timestamp],
+                    imageId = latest[Images.imageId],
+                    exception = latest[Images.exception],
+                    rowId = latest[Images.id].value
                 )
             }
         }

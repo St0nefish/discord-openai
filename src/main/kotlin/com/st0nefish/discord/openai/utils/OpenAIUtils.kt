@@ -6,6 +6,9 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.image.ImageCreation
 import com.aallam.openai.api.image.ImageSize
+import com.aallam.openai.api.image.ImageURL
+import com.aallam.openai.api.image.Quality
+import com.aallam.openai.api.image.Style
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
 import com.st0nefish.discord.openai.ENV_OPENAI_TOKEN
@@ -14,7 +17,6 @@ import com.st0nefish.discord.openai.data.Config
 import com.st0nefish.discord.openai.data.ImageExchange
 import dev.kord.core.entity.User
 import org.slf4j.LoggerFactory
-import kotlin.time.times
 
 /**
  * utility class for communicating with the OpenAI API
@@ -29,12 +31,6 @@ class OpenAIUtils private constructor(
     openaiToken: String = System.getenv(ENV_OPENAI_TOKEN)!!
 ) {
     companion object {
-        // constants
-        private const val TEXT_TOKEN_COST = 0.002 / 1000
-        private const val IMG_1024_COST = 0.02 / 1
-        private const val IMG_512_COST = 0.018 / 1
-        private const val IMG_256_COST = 0.016 / 1
-
         // gpt input costs per token
         private val gpt_input_cost: Map<String, Double> = mapOf(
             "gpt-4o-mini" to (0.15 / 1000000),
@@ -51,6 +47,25 @@ class OpenAIUtils private constructor(
             "gpt-3.5-turbo-1106" to (2.00 / 1000000),
             "o1-mini" to (12.00 / 1000000),
             "o1" to (60.00 / 1000000),
+        )
+
+        // dall-e cost
+        private val dall_e_cost: Map<String, Map<String, Double>> = mapOf(
+            "dall-e-3-standard" to mapOf(
+                "1024x1024" to 0.040,
+                "1024×1792" to 0.080,
+                "1792x1024" to 0.080,
+            ),
+            "dall-e-3-hd" to mapOf(
+                "1024x1024" to 0.080,
+                "1024×1792" to 0.120,
+                "1792x1024" to 0.120,
+            ),
+            "dall-e-2" to mapOf(
+                "256x256" to 0.016,
+                "512x512" to 0.018,
+                "1024x1024" to 0.020,
+            )
         )
 
         /**
@@ -97,7 +112,11 @@ class OpenAIUtils private constructor(
     suspend fun getChatResponse(user: User, prompt: String, model: String): ChatExchange { // log question
         log.info("${user.tag} asked: $prompt") // create exchange object for return
         // create chat exchange
-        val exchange = ChatExchange(user.id.value, prompt) // check if user can make a request
+        val exchange = ChatExchange(
+            author = user.id.value,
+            model = model,
+            prompt = prompt
+        ) // check if user can make a request
         if (database.canMakeRequest(user)) { // execute request
             val completion: ChatCompletion
             try {
@@ -115,8 +134,8 @@ class OpenAIUtils private constructor(
                 exchange.totalTokens = completion.usage?.totalTokens ?: 0
                 exchange.cost = getChatCost(model, exchange.requestTokens, exchange.responseTokens) // log response
                 log.info(
-                    "GPT response:%nAuthor: %s%nPrompt: %s%nResponse: %s".format(
-                        user.tag, prompt, exchange.response.trim()
+                    "GPT response:%nAuthor: %sModel: %s%nCost: %s%nPrompt: %s%nResponse: %s".format(
+                        user.tag, model, exchange.cost, prompt, exchange.response.trim()
                     )
                 )
             } catch (e: Exception) { // handle exception
@@ -145,32 +164,58 @@ class OpenAIUtils private constructor(
      * @param prompt String prompt to create an image for
      * @return URL of the generated image
      */
-    suspend fun createImage(user: User, size: String, prompt: String): ImageExchange { // log
+    suspend fun createImage(
+        user: User,
+        prompt: String,
+        model: String = "dall-e-3",
+        size: String = "1024x1024",
+        quality: String = "standard",
+        style: String = "natural",
+        count: Int = 1,
+    ): ImageExchange { // log
         log.info("${user.tag} asked DALL·E for $size image with prompt: $prompt")
-
         // create image object for return
-        val image = ImageExchange(user.id.value, size, prompt) // check if user is allowed to make a request
+        val image = ImageExchange(
+            author = user.id.value,
+            model = model,
+            quality = quality,
+            style = style,
+            size = size,
+            prompt = prompt
+        )
+        // check if user is allowed to make a request
         if (database.canMakeRequest(user)) {
             try { // send request to DALL·E
-                val images = openAI.imageURL(
-                    creation = ImageCreation(n = 1, size = ImageSize(size), prompt = prompt)
-                )
+                var images: List<ImageURL> = mutableListOf()
+                if (model == "dall-e-3") {
+                    images = openAI.imageURL(
+                        creation = ImageCreation(
+                            model = ModelId(model),
+                            quality = Quality(quality),
+                            style = Style(style),
+                            size = ImageSize(size),
+                            prompt = prompt,
+                            n = count,
+                        )
+                    )
+                } else if (model == "dall-e-2") {
+                    images = openAI.imageURL(
+                        creation = ImageCreation(
+                            model = ModelId(model),
+                            size = ImageSize(size),
+                            n = count,
+                            prompt = prompt
+                        )
+                    )
+                }
                 image.success = true
                 image.url = images.first().url
-                image.cost = getImageCost(size)
-                log.info(
-                    "%s generated %s image via DALL·E%nPrompt: %s%nURL: %s".format(
-                        user.tag, size, prompt, image.url
-                    )
-                )
+                image.cost = getImageCost(model, quality, size, count)
+                log.info("generated image via DALL·E\n${image}")
             } catch (e: Exception) { // catch failure
                 image.success = false
-                image.url = e.stackTraceToString()
-                log.error(
-                    "exception getting image from DALL·E%nAuthor: %s:%nPrompt:%s%nException:%n%s".format(
-                        user.tag, prompt, e.stackTraceToString()
-                    )
-                )
+                image.exception = e.stackTraceToString()
+                log.error("exception generating image via DALL·E\n${image}\n${e.stackTraceToString()}")
             }
         } else { // handle case where user has violated cap
             image.success = false
@@ -183,16 +228,6 @@ class OpenAIUtils private constructor(
         } // save image results and return
         database.saveImageExchange(image)
         return image
-    }
-
-    /**
-     * get the cost of a chat request
-     *
-     * @param tokens number of tokens used by the request
-     * @return cost of the request
-     */
-    private fun getChatCost(tokens: Int): Double {
-        return tokens * TEXT_TOKEN_COST
     }
 
     /**
@@ -213,12 +248,11 @@ class OpenAIUtils private constructor(
      * @param size size of the generated image
      * @return cost of the request
      */
-    private fun getImageCost(size: String): Double {
-        return when (size) {
-            "256x256" -> IMG_256_COST
-            "512x512" -> IMG_512_COST
-            "1024x1024" -> IMG_1024_COST
-            else -> IMG_1024_COST
+    private fun getImageCost(model: String, quality: String, size: String, count: Int): Double {
+        var modelKey: String = model
+        if (model == "dall-e-3") {
+            modelKey = "dall-e-3-$quality"
         }
+        return (dall_e_cost[modelKey]!![size] ?: 0.10) * count
     }
 }

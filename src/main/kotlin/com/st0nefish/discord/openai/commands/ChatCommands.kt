@@ -85,21 +85,20 @@ private suspend fun handleChatCommand(interaction: ChatInputCommandInteraction, 
            **Model:**
            $model
         """.trimIndent()
-        val singlePartResponseHeader: String = "**Response:**"
+        val singlePartResponseHeader: String = "**Response:**\n"
         val multiPartResponseHeader: String = "**Response xx of yy:**\n"
         // check if response is too long to post in a single message
         if (
             (responseHeader.length
                     + CHAT_DELIM.length
                     + singlePartResponseHeader.length
-                    + CHAT_DELIM.length
                     + exchange.response.length)
             <=
             MAX_MESSAGE_LENGTH
         ) {
             // respond with user tag + question + model + answer
             response.respond {
-                content = responseHeader + CHAT_DELIM + singlePartResponseHeader + CHAT_DELIM + exchange.response
+                content = responseHeader + CHAT_DELIM + singlePartResponseHeader + exchange.response
             }
         } else {
             // response too long for one message - break it up into parts

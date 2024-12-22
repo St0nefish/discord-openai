@@ -1,7 +1,7 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
 group = "com.st0nefish"
-version = "0.1.7"
+version = "0.1.8"
 description = "a discord bot for communicating with OpenAI"
 
 plugins {
@@ -21,10 +21,11 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:${Versions.SLF4J}")
     // kord for discord api wrapper
     implementation("dev.kord:kord-core:${Versions.KORD}")
-    // openai api wrapper - requires okhttp
+    // openai api - use versioned bom then add dependencies without versions
     implementation(platform("com.aallam.openai:openai-client-bom:${Versions.OPENAI}"))
     implementation("com.aallam.openai:openai-client")
     runtimeOnly("io.ktor:ktor-client-okhttp")
+    // jetbrains database api
     implementation("org.jetbrains.exposed:exposed-core:${Versions.EXPOSED}")
     implementation("org.jetbrains.exposed:exposed-dao:${Versions.EXPOSED}")
     implementation("org.jetbrains.exposed:exposed-jdbc:${Versions.EXPOSED}")
@@ -56,7 +57,6 @@ tasks.register<Copy>("dockerCopyDist") {
     description = "copy the distribution to the docker build directory"
     group = "docker"
     dependsOn("distTar")
-
     // build distribution tar and copy to build/docker/discord-openai.tar
     from(tasks.distTar.get())
     into(layout.buildDirectory.dir("docker"))
@@ -65,7 +65,6 @@ tasks.register<Copy>("dockerCopyDist") {
 tasks.register<Copy>("dockerCopyLogger") {
     description = "copy the logger config to the docker build directory"
     group = "docker"
-
     // copy logger config to build/docker
     from(layout.projectDirectory.file("docker/simplelogger.properties"))
     into(layout.buildDirectory.dir("docker"))
@@ -74,14 +73,13 @@ tasks.register<Copy>("dockerCopyLogger") {
 tasks.register<Copy>("generateDockerfile") {
     description = "generate dockerfile in docker build directory"
     group = "docker"
-
     // gradle properties
     val dockerBaseImg: String by project
     val dockerImgVersion: String = project.version.toString()
-
     // generate dockerfile into build/docker
     from(layout.projectDirectory.file("docker/Dockerfile"))
     into(layout.buildDirectory.dir("docker"))
+    // replace tokens
     filter(
         ReplaceTokens::class, "tokens" to mapOf(
             "docker_base_image" to dockerBaseImg, "project_version" to dockerImgVersion
@@ -93,7 +91,6 @@ tasks.register<Exec>("buildDockerImage") {
     description = "build the docker image"
     group = "docker"
     dependsOn("dockerCopyDist", "dockerCopyLogger", "generateDockerfile")
-
     // build docker image
     workingDir(layout.buildDirectory.dir("docker"))
     commandLine(
@@ -111,7 +108,6 @@ tasks.register<Exec>("pushDockerImage") {
     description = "push the latest docker image"
     group = "docker"
     dependsOn("buildDockerImage")
-
     // set working directory to the one with the generated image
     workingDir(layout.buildDirectory.dir("docker"))
     // push docker image with version tag
@@ -121,8 +117,7 @@ tasks.register<Exec>("pushDockerImage") {
 tasks.register<Exec>("pushDockerImageLatest") {
     description = "push the latest docker image"
     group = "docker"
-    dependsOn("buildDockerImage")
-
+    dependsOn("pushDockerImage")
     // set working directory to the one with the generated image
     workingDir(layout.buildDirectory.dir("docker"))
     // push with latest tag
