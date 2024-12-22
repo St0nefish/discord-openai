@@ -60,6 +60,7 @@ suspend fun main() {
     if (System.getenv(ENV_CLEAN_START).toBoolean()) {
         CommandManager.deregisterAllCommands(kord)
     }
+    println("bot started with ID: ${kord.selfId}")
     // register commands
     registerGeneralCommands(kord)
     registerChatCommands(kord)
