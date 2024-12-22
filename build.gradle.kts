@@ -112,9 +112,21 @@ tasks.register<Exec>("pushDockerImage") {
     group = "docker"
     dependsOn("buildDockerImage")
 
-    // push docker image
+    // set working directory to the one with the generated image
     workingDir(layout.buildDirectory.dir("docker"))
+    // push docker image with version tag
     commandLine("docker", "push", "st0nefish/${project.name}:${project.version}")
+}
+
+tasks.register<Exec>("pushDockerImageLatest") {
+    description = "push the latest docker image"
+    group = "docker"
+    dependsOn("buildDockerImage")
+
+    // set working directory to the one with the generated image
+    workingDir(layout.buildDirectory.dir("docker"))
+    // push with latest tag
+    commandLine("docker", "push", "st0nefish/${project.name}:latest")
 }
 
 // create fat jar with all dependencies

@@ -14,6 +14,7 @@ import com.st0nefish.discord.openai.data.Config
 import com.st0nefish.discord.openai.data.ImageExchange
 import dev.kord.core.entity.User
 import org.slf4j.LoggerFactory
+import kotlin.time.times
 
 /**
  * utility class for communicating with the OpenAI API
@@ -33,6 +34,24 @@ class OpenAIUtils private constructor(
         private const val IMG_1024_COST = 0.02 / 1
         private const val IMG_512_COST = 0.018 / 1
         private const val IMG_256_COST = 0.016 / 1
+
+        // gpt input costs per token
+        private val gpt_input_cost: Map<String, Double> = mapOf(
+            "gpt-4o-mini" to (0.15 / 1000000),
+            "gpt-4o" to (2.50 / 1000000),
+            "gpt-3.5-turbo-1106" to (1.00 / 1000000),
+            "o1-mini" to (3.00 / 1000000),
+            "o1" to (15.00 / 1000000),
+        )
+
+        // gpt output costs per token
+        private val gpt_output_cost: Map<String, Double> = mapOf(
+            "gpt-4o-mini" to (0.60 / 1000000),
+            "gpt-4o" to (10.00 / 1000000),
+            "gpt-3.5-turbo-1106" to (2.00 / 1000000),
+            "o1-mini" to (12.00 / 1000000),
+            "o1" to (60.00 / 1000000),
+        )
 
         /**
          * instance object for singleton management
@@ -94,7 +113,7 @@ class OpenAIUtils private constructor(
                 exchange.requestTokens = completion.usage?.promptTokens ?: 0
                 exchange.responseTokens = completion.usage?.completionTokens ?: 0
                 exchange.totalTokens = completion.usage?.totalTokens ?: 0
-                exchange.cost = getChatCost(exchange.totalTokens) // log response
+                exchange.cost = getChatCost(model, exchange.requestTokens, exchange.responseTokens) // log response
                 log.info(
                     "GPT response:%nAuthor: %s%nPrompt: %s%nResponse: %s".format(
                         user.tag, prompt, exchange.response.trim()
@@ -174,6 +193,18 @@ class OpenAIUtils private constructor(
      */
     private fun getChatCost(tokens: Int): Double {
         return tokens * TEXT_TOKEN_COST
+    }
+
+    /**
+     * get the cost of a chat request for a given model, input token count, and output token count
+     *
+     * @param model name of the model used
+     * @param inTokens number of input tokens
+     * @param outTokens number of output tokens
+     * @return cost of the request
+     */
+    private fun getChatCost(model: String, inTokens: Int, outTokens: Int): Double {
+        return (inTokens * (gpt_input_cost[model] ?: 0.01)) + (outTokens * (gpt_output_cost[model] ?: 0.02))
     }
 
     /**

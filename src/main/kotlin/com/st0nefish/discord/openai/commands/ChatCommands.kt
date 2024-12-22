@@ -48,7 +48,7 @@ suspend fun registerChatCommands(
                 required = true
                 choice("GPT-4o mini", "gpt-4o-mini")
                 choice("GPT 4o", "gpt-4o")
-                choice("GPT 3.5 turbo", "gpt-3.5-turbo")
+                choice("GPT 3.5 turbo", "gpt-3.5-turbo-1106")
                 choice("o1-mini", "o1-mini")
             }
             string(INPUT_PROMPT, "the prompt to send to Chat GPT") { required = true }
